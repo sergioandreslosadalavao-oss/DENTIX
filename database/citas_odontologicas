@@ -1,0 +1,339 @@
+
+-- =====================================================================
+-- SISTEMA DE CITAS ODONTOLÓGICAS (SCO)
+-- Base de datos para PostgreSQL / pgAdmin
+-- =====================================================================
+
+-- 1. TIPO ENUM (Estados de la cita)
+CREATE TYPE estado_cita AS ENUM (
+    'pendiente',
+    'confirmada',
+    'completada',
+    'cancelada',
+    'no_show'
+);
+
+
+-- =====================================================================
+-- 2. TABLAS MAESTRAS
+-- =====================================================================
+
+-- ---------- Paciente ----------
+CREATE TABLE paciente (
+    id           INT GENERATED ALWAYS AS IDENTITY,
+    nombre       VARCHAR(100) NOT NULL,
+    telefono     VARCHAR(20)  NOT NULL,
+    email        VARCHAR(100),
+    fecha_nac    DATE,
+    alergias     TEXT,
+    
+    CONSTRAINT pk_paciente PRIMARY KEY (id),
+    CONSTRAINT ck_paciente_nombre CHECK (length(trim(nombre)) > 0),
+    CONSTRAINT ck_paciente_telefono CHECK (length(trim(telefono)) > 0),
+    CONSTRAINT ck_paciente_fecha_nac CHECK (fecha_nac IS NULL OR fecha_nac <= CURRENT_DATE)
+);
+
+
+
+-- ---------- Odontólogo ----------
+CREATE TABLE odontologo (
+    id              INT GENERATED ALWAYS AS IDENTITY,
+    nombre          VARCHAR(100) NOT NULL,
+    especialidad    VARCHAR(60)  NOT NULL,
+    consultorio     VARCHAR(30),
+    slug_publico    VARCHAR(60)  NOT NULL,
+    
+    CONSTRAINT pk_odontologo PRIMARY KEY (id),
+    CONSTRAINT uq_odontologo_slug UNIQUE (slug_publico),
+    CONSTRAINT ck_odontologo_nombre CHECK (length(trim(nombre)) > 0)
+);
+
+
+
+
+-- ---------- Servicio ----------
+CREATE TABLE servicio (
+    id              INT GENERATED ALWAYS AS IDENTITY,
+    nombre          VARCHAR(80)   NOT NULL,
+    duracion_min    INT           NOT NULL,
+    precio          NUMERIC(10,2) NOT NULL DEFAULT 0,
+    
+    CONSTRAINT pk_servicio PRIMARY KEY (id),
+    CONSTRAINT uq_servicio_nombre UNIQUE (nombre),
+    CONSTRAINT ck_servicio_duracion CHECK (duracion_min >= 15),
+    CONSTRAINT ck_servicio_precio CHECK (precio >= 0)
+);
+
+
+-- =====================================================================
+-- 3. TABLA TRANSACCIONAL: CITA
+-- =====================================================================
+CREATE TABLE cita (
+    id                  INT GENERATED ALWAYS AS IDENTITY,
+    paciente_id         INT          NOT NULL,
+    odontologo_id       INT          NOT NULL,
+    servicio_id         INT          NOT NULL,
+    fecha               DATE         NOT NULL,
+    hora                TIME         NOT NULL,
+    estado              estado_cita  NOT NULL DEFAULT 'pendiente',
+    motivo              VARCHAR(200),
+    motivo_cancelacion  VARCHAR(200),
+    creado_en           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_cita PRIMARY KEY (id),
+    
+    CONSTRAINT fk_cita_paciente
+        FOREIGN KEY (paciente_id) REFERENCES paciente (id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+        
+    CONSTRAINT fk_cita_odontologo
+        FOREIGN KEY (odontologo_id) REFERENCES odontologo (id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+        
+    CONSTRAINT fk_cita_servicio
+        FOREIGN KEY (servicio_id) REFERENCES servicio (id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    -- RN-02: Sin choque de horario por odontólogo
+    CONSTRAINT uq_agenda UNIQUE (odontologo_id, fecha, hora),
+
+    -- RN-03: Atención de 8:00 a 19:30, en intervalos de 30 minutos
+    CONSTRAINT ck_cita_horario CHECK (
+        hora >= TIME '08:00'
+        AND hora <= TIME '19:30'
+        AND EXTRACT(MINUTE FROM hora) IN (0, 30)
+        AND EXTRACT(SECOND FROM hora) = 0
+    ),
+
+    -- RN-06: Cancelar exige motivo obligatorio
+    CONSTRAINT ck_cita_cancelacion CHECK (
+        estado <> 'cancelada'
+        OR length(trim(COALESCE(motivo_cancelacion, ''))) > 0
+    )
+);
+
+
+-- =====================================================================
+-- 4. DETALLE_CITA (Detalle clínico, 1 por cita)
+-- =====================================================================
+CREATE TABLE detalle_cita (
+    id              INT GENERATED ALWAYS AS IDENTITY,
+    cita_id         INT       NOT NULL,
+    servicio_id     INT       NOT NULL,
+    detalle         TEXT,
+    procedimiento   TEXT,
+    nota_clinica    TEXT,
+    creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_detalle_cita PRIMARY KEY (id),
+    
+    CONSTRAINT fk_detalle_cita
+        FOREIGN KEY (cita_id) REFERENCES cita (id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+        
+    CONSTRAINT fk_detalle_servicio
+        FOREIGN KEY (servicio_id) REFERENCES servicio (id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    -- RN-04: Máximo un detalle por cita
+    CONSTRAINT uq_detalle_cita UNIQUE (cita_id)
+);
+
+
+-- =====================================================================
+-- 5. ÍNDICES (Optimización de agenda e historial)
+-- =====================================================================
+CREATE INDEX ix_cita_fecha ON cita (fecha);
+CREATE INDEX ix_cita_paciente ON cita (paciente_id, fecha DESC);
+CREATE INDEX ix_cita_servicio ON cita (servicio_id);
+CREATE INDEX ix_paciente_nombre ON paciente (lower(nombre));
+CREATE INDEX ix_paciente_telefono ON paciente (telefono);
+CREATE INDEX ix_detalle_servicio ON detalle_cita (servicio_id);
+
+
+-- =====================================================================
+-- 6. VISTAS
+-- =====================================================================
+
+-- Agenda del día: hora, paciente, servicio, estado
+CREATE VIEW v_agenda_dia AS
+SELECT
+    c.id            AS cita_id,
+    c.fecha,
+    c.hora,
+    o.id            AS odontologo_id,
+    o.nombre        AS odontologo,
+    o.consultorio,
+    p.nombre        AS paciente,
+    p.telefono,
+    s.nombre        AS servicio,
+    s.duracion_min,
+    c.estado,
+    c.motivo
+FROM cita c
+INNER JOIN paciente   p ON p.id = c.paciente_id
+INNER JOIN odontologo o ON o.id = c.odontologo_id
+INNER JOIN servicio   s ON s.id = c.servicio_id;
+
+-- Ficha del paciente: citas + detalle clínico
+CREATE VIEW v_historial_paciente AS
+SELECT
+    p.id            AS paciente_id,
+    p.nombre        AS paciente,
+    p.alergias,
+    c.id            AS cita_id,
+    c.fecha,
+    c.hora,
+    c.estado,
+    o.nombre        AS odontologo,
+    s.nombre        AS servicio,
+    d.detalle,
+    d.procedimiento,
+    d.nota_clinica
+FROM paciente p
+INNER JOIN cita c       ON c.paciente_id = p.id
+INNER JOIN odontologo o ON o.id = c.odontologo_id
+INNER JOIN servicio s   ON s.id = c.servicio_id
+LEFT JOIN detalle_cita d ON d.cita_id = c.id;
+
+
+-- =====================================================================
+-- 7. DATOS DE PRUEBA
+-- =====================================================================
+INSERT INTO paciente (nombre, telefono, email, fecha_nac, alergias) VALUES
+ ('Laura Gomez', '3001112233', 'laura@mail.com', '1995-03-14', 'Penicilina'),
+ ('Carlos Perez', '3104445566', 'carlos@mail.com', '1988-11-02', NULL),
+ ('Marta Rojas', '3207778899', NULL, '2001-07-21', 'Latex'),
+ ('Andres Silva', '3151239876', 'andres@mail.com', NULL, NULL);
+
+INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico) VALUES
+('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres'),
+('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza'),
+('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios');
+
+INSERT INTO servicio (nombre, duracion_min, precio) VALUES
+ ('Consulta general', 30, 50000.00),
+ ('Limpieza dental', 30, 80000.00),
+ ('Calza (resina)', 60, 150000.00),
+ ('Endodoncia', 90, 450000.00),
+ ('Control de ortodoncia', 30, 70000.00);
+
+-- Citas (fechas futuras)
+INSERT INTO cita (paciente_id, odontologo_id, servicio_id, fecha, hora, estado, motivo) VALUES
+(1, 1, 1, CURRENT_DATE + 1, '09:00', 'pendiente', 'Dolor en muela'),
+(2, 1, 2, CURRENT_DATE + 1, '09:30', 'confirmada', 'Limpieza semestral'),
+(3, 2, 5, CURRENT_DATE + 1, '10:00', 'pendiente', 'Control mensual'),
+(4, 3, 4, CURRENT_DATE + 2, '14:00', 'pendiente', 'Dolor fuerte'),
+(1, 2, 5, CURRENT_DATE + 3, '11:00', 'pendiente', NULL);
+
+
+
+
+
+
+-- Actualizar cita completada y agregar detalle clínico
+UPDATE cita SET estado = 'completada' WHERE id = 2;
+
+INSERT INTO detalle_cita (cita_id, servicio_id, detalle, procedimiento, nota_clinica) VALUES
+(2, 2, 'Acumulo de sarro leve', 'Profilaxis con ultrasonido', 'Control en 6 meses');
+
+-- Actualizar cita cancelada (con motivo obligatorio)
+UPDATE cita 
+   SET estado = 'cancelada',
+       motivo_cancelacion = 'Paciente viaja' 
+ WHERE id = 5;
+
+
+
+
+
+
+-- =====================================================================
+-- 8. CONSULTAS DE EJEMPLO (DML)
+-- =====================================================================
+
+-- 8.1 Agenda del día
+SELECT hora, paciente, servicio, odontologo, estado
+FROM v_agenda_dia
+WHERE fecha = CURRENT_DATE + 1
+ORDER BY hora;
+
+-- 8.2 Agenda del día filtrada por odontólogo
+SELECT hora, paciente, servicio, estado
+FROM v_agenda_dia
+WHERE fecha = CURRENT_DATE + 1
+  AND odontologo_id = 1
+ORDER BY hora;
+
+-- 8.3 Ficha del paciente
+SELECT fecha, hora, servicio, odontologo, estado, procedimiento, nota_clinica
+FROM v_historial_paciente
+WHERE paciente_id = 1
+ORDER BY fecha DESC, hora DESC;
+
+-- 8.4 Buscar paciente por nombre o teléfono
+SELECT id, nombre, telefono, email
+FROM paciente
+WHERE lower(nombre) LIKE lower('%laura%')
+   OR telefono LIKE '%3001%';
+
+-- 8.5 Cita completa con todas las tablas unidas
+SELECT 
+    c.id, c.fecha, c.hora, c.estado,
+    p.nombre AS paciente,
+    o.nombre AS odontologo,
+    s.nombre AS servicio,
+    s.precio,
+    d.procedimiento,
+    d.nota_clinica
+FROM cita c
+INNER JOIN paciente   p ON p.id = c.paciente_id
+INNER JOIN odontologo o ON o.id = c.odontologo_id
+INNER JOIN servicio   s ON s.id = c.servicio_id
+LEFT JOIN detalle_cita d ON d.cita_id = c.id
+ORDER BY c.fecha, c.hora;
+
+-- 8.6 Horas libres de un odontólogo en una fecha
+SELECT h.hora_libre
+FROM generate_series(
+        TIMESTAMP '2000-01-01 08:00',
+        TIMESTAMP '2000-01-01 19:30',
+        INTERVAL '30 minutes'
+     ) AS g(t)
+CROSS JOIN LATERAL (
+    SELECT g.t::time AS hora_libre
+) h
+LEFT JOIN cita c
+      ON c.hora = h.hora_libre
+      AND c.fecha = CURRENT_DATE + 1
+      AND c.odontologo_id = 1
+      AND c.estado NOT IN ('cancelada', 'no_show')
+WHERE c.id IS NULL
+ORDER BY h.hora_libre;
+
+-- 8.7 Agenda pública por QR: datos del odontólogo
+SELECT o.nombre, o.especialidad, s.nombre AS servicio, s.duracion_min
+FROM odontologo o
+CROSS JOIN servicio s
+WHERE o.slug_publico = 'dra-ana-torres'
+ORDER BY s.nombre;
+
+-- 8.8 Citas por odontólogo (cuántas y de qué estado)
+SELECT o.nombre, c.estado, COUNT(c.id) AS total
+FROM odontologo o
+LEFT JOIN cita c ON c.odontologo_id = o.id
+GROUP BY o.nombre, c.estado
+ORDER BY o.nombre, c.estado;
+
+-- 8.9 Servicios más solicitados
+SELECT s.nombre, COUNT(c.id) AS veces
+FROM servicio s
+LEFT JOIN cita c ON c.servicio_id = s.id
+GROUP BY s.nombre
+ORDER BY veces DESC;
+
+-- 8.10 Pacientes sin ninguna cita
+SELECT p.id, p.nombre
+FROM paciente p
+LEFT JOIN cita c ON c.paciente_id = p.id
+WHERE c.id IS NULL;
