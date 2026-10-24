@@ -24,7 +24,6 @@ try {
         PDO::FETCH_ASSOC
     );
 
-    echo "Conexión exitosa";
 
 } catch (PDOException $e) {
     error_log($e->getMessage());
