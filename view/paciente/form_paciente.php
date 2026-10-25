@@ -8,7 +8,7 @@
 
     <h1>Registrar paciente</h1>
 
-    <form action="../app/logica_paciente.php" method="POST">
+    <form action="../../app/logica_paciente.php" method="POST">
 
         <label for="nombre">Nombre:</label>
         <input type="text" id="nombre" name="nombre" required>

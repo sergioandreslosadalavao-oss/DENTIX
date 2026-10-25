@@ -3,7 +3,7 @@
 
 session_start();
 
-require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../../config/database.php";
 
 // Recuperar mensajes de la operación anterior.
 $mensaje = $_SESSION["mensaje"] ?? null;
@@ -123,14 +123,14 @@ $pacientes = $consulta->fetchAll(PDO::FETCH_ASSOC);
                         </td>
 
                         <td>
-                            <a href="../app/logica_paciente.php?accion=editar&amp;id=<?= (int) $paciente["id"] ?>">
+                            <a href="../../app/logica_paciente.php?accion=editar&amp;id=<?= (int) $paciente["id"] ?>">
                                 Editar
                             </a>
 
                             <br><br>
 
                             <form
-                                action="../app/logica_paciente.php"
+                                action="../../app/logica_paciente.php"
                                 method="POST"
                                 onsubmit="return confirm('¿Deseas eliminar este paciente?');"
                             >

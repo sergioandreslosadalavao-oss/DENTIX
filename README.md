@@ -20,13 +20,19 @@ El proyecto está organizado en carpetas que separan la conexión a la base de d
 ```text
 SCO/
 ├── app/
-│   └── logica_paciente.php
+│   ├── logica_paciente.php
+│   └── logica_odontologo.php
 ├── config/
 │   └── database.php
 ├── view/
-│   ├── form_paciente.php
-│   ├── lista_pacientes.php
-│   └── editar_paciente.php
+│   ├── paciente/
+│   │   ├── form_paciente.php
+│   │   ├── lista_pacientes.php
+│   │   └── editar_paciente.php
+│   └── odontologo/
+│       ├── form_odontologo.php
+│       ├── lista_odontologos.php
+│       └── editar_odontologo.php
 └── README.md
 ```
 
@@ -59,9 +65,16 @@ Si estos datos no coinciden con tu instalación, la aplicación no podrá conect
 
 Esta carpeta contiene las páginas PHP encargadas de presentar la información y permitir que el usuario interactúe con el sistema.
 
-- **`form_paciente.php`:** presenta el formulario para registrar los datos de un paciente y enviar la información para su procesamiento.
-- **`lista_pacientes.php`:** muestra los pacientes registrados, sus datos principales y las opciones disponibles para consultar o realizar operaciones sobre los registros.
-- **`editar_paciente.php`:** permite cargar y modificar la información de un paciente existente, según la lógica implementada en el archivo.
+La carpeta `view/` está organizada por tipo de usuario:
+
+- **`paciente/`:** contiene las vistas relacionadas con los pacientes.
+  - **`form_paciente.php`:** presenta el formulario para registrar los datos de un paciente y enviar la información para su procesamiento.
+  - **`lista_pacientes.php`:** muestra los pacientes registrados, sus datos principales y las opciones disponibles para consultar o realizar operaciones sobre los registros.
+  - **`editar_paciente.php`:** permite cargar y modificar la información de un paciente existente, según la lógica implementada en el archivo.
+- **`odontologo/`:** contiene las vistas relacionadas con los odontólogos.
+  - **`form_odontologo.php`:** presenta el formulario para registrar los datos de un odontólogo.
+  - **`lista_odontologos.php`:** muestra los odontólogos registrados y las opciones para editarlos o eliminarlos.
+  - **`editar_odontologo.php`:** permite cargar y modificar la información de un odontólogo existente.
 
 La carpeta `view/` se encarga de la presentación. Las consultas y operaciones de negocio deben mantenerse en la lógica correspondiente, en lugar de duplicarse en los formularios.
 
@@ -128,7 +141,7 @@ sudo /opt/lampp/lampp startapache
 Desde el navegador, accede a la ruta de la aplicación correspondiente al archivo principal que deseas ejecutar. Por ejemplo:
 
 ```text
-http://localhost/SCO/view/lista_pacientes.php
+http://localhost/SCO/view/paciente/lista_pacientes.php
 ```
 
 ## Documentación adicional

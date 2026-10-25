@@ -17,7 +17,7 @@ if ($metodo === "GET" && $accion === "editar") {
         $_SESSION["mensaje"] = "Error: el ID del paciente no es válido.";
         $_SESSION["tipo_mensaje"] = "error";
 
-        header("Location: ../view/lista_pacientes.php");
+        header("Location: ../view/paciente/lista_pacientes.php");
         exit;
     }
 
@@ -35,12 +35,12 @@ if ($metodo === "GET" && $accion === "editar") {
             $_SESSION["mensaje"] = "No se encontró el paciente solicitado.";
             $_SESSION["tipo_mensaje"] = "error";
 
-            header("Location: ../view/lista_pacientes.php");
+            header("Location: ../view/paciente/lista_pacientes.php");
             exit;
         }
 
         // La lógica obtiene los datos y entrega el control a la vista.
-        require __DIR__ . "/../view/editar_paciente.php";
+        require __DIR__ . "/../view/paciente/editar_paciente.php";
         exit;
 
     } catch (PDOException $e) {
@@ -49,14 +49,14 @@ if ($metodo === "GET" && $accion === "editar") {
         $_SESSION["mensaje"] = "No se pudieron consultar los datos del paciente.";
         $_SESSION["tipo_mensaje"] = "error";
 
-        header("Location: ../view/lista_pacientes.php");
+        header("Location: ../view/paciente/lista_pacientes.php");
         exit;
     }
 }
 
 // Las demás operaciones se procesan mediante POST.
 if ($metodo !== "POST") {
-    header("Location: ../view/lista_pacientes.php");
+    header("Location: ../view/paciente/lista_pacientes.php");
     exit;
 }
 
@@ -285,5 +285,5 @@ try {
 }
 
 // Mostrar el resultado en el listado.
-header("Location: ../view/lista_pacientes.php");
+header("Location: ../view/paciente/lista_pacientes.php");
 exit;

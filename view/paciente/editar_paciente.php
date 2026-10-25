@@ -22,7 +22,7 @@ function escapar($valor) {
 
     <h1>Editar paciente</h1>
 
-    <form action="../app/logica_paciente.php" method="POST">
+    <form action="../../app/logica_paciente.php" method="POST">
 
         <input type="hidden" name="accion" value="actualizar">
         <input type="hidden" name="id"
