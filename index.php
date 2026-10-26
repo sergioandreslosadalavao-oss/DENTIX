@@ -14,7 +14,6 @@
         <li><a href="view/odontologo/lista_odontologos.php">Odontólogos</a></li>
         <li><a href="view/servicio/lista_servicios.php">Servicios</a></li>
         <li><a href="view/cita/lista_citas.php">Cita</a></li>
-        
     </ul>
 
 </body>
