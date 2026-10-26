@@ -172,7 +172,12 @@ try {
                         ":id" => $id
                     ]);
 
-                    if ($consulta->rowCount() > 0) {
+                    $verificacion = $conexion->prepare(
+                        "SELECT id FROM servicio WHERE id = :id"
+                    );
+                    $verificacion->execute([":id" => $id]);
+
+                    if ($verificacion->fetch()) {
                         mensaje("Servicio actualizado correctamente.", "exito");
                     } else {
                         mensaje("No se encontró el servicio que intentas actualizar.", "error");

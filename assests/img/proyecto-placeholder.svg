@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Imagen provisional del proyecto SCO">
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0b5a56"/>
+            <stop offset="48%" stop-color="#084340"/>
+            <stop offset="100%" stop-color="#042e2f"/>
+        </linearGradient>
+        <linearGradient id="tooth" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#9df4e2"/>
+            <stop offset="55%" stop-color="#43dbc4"/>
+            <stop offset="100%" stop-color="#0f9d8f"/>
+        </linearGradient>
+        <radialGradient id="glow" cx="50%" cy="42%" r="55%">
+            <stop offset="0%" stop-color="#63e5d0" stop-opacity="0.42"/>
+            <stop offset="100%" stop-color="#63e5d0" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="coral" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ff8d70" stop-opacity="0.34"/>
+            <stop offset="100%" stop-color="#ff8d70" stop-opacity="0"/>
+        </radialGradient>
+        <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+            <path d="M64 0H0V64" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+        </pattern>
+        <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="26"/>
+        </filter>
+    </defs>
+
+    <rect width="1200" height="800" fill="url(#bg)"/>
+    <rect width="1200" height="800" fill="url(#grid)"/>
+    <circle cx="920" cy="150" r="280" fill="url(#coral)" filter="url(#soft)"/>
+    <circle cx="320" cy="560" r="320" fill="url(#glow)" filter="url(#soft)"/>
+    <circle cx="600" cy="400" r="262" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-dasharray="3 14"/>
+
+    <g opacity="0.55">
+        <circle cx="930" cy="560" r="9" fill="#ffb4a2"/>
+        <circle cx="965" cy="596" r="5" fill="#9df4e2"/>
+        <circle cx="890" cy="610" r="5" fill="#ffffff"/>
+        <circle cx="285" cy="250" r="7" fill="#9df4e2"/>
+        <circle cx="250" cy="286" r="4" fill="#ffffff"/>
+        <path d="M1015 300h26M1028 287v26" stroke="#9df4e2" stroke-width="3" stroke-linecap="round"/>
+        <path d="M214 470h20M224 460v20" stroke="#ffffff" stroke-opacity="0.7" stroke-width="3" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(420 176) scale(0.8)" filter="drop-shadow(0 34px 46px rgba(0,0,0,0.34))">
+        <path
+            fill="url(#tooth)"
+            d="M443.98 96.01c0-56.43-45.53-96.01-112.9-96.01-44.65 0-60.15 25-92.08 25-31.03 0-48.88-25-92.08-25C77.55 0 32 39.59 32 96.01c0 39.02 16.93 70.15 38.33 111.1 15.68 30.02 25.75 66.62 31.28 105.8C108.7 366.2 118.1 512 156.5 512c24.41 0 31.51-21.11 38.51-49.11 5.95-23.84 12.06-48.39 29.09-48.39 17.03 0 23.14 24.55 29.09 48.39 7 28 14.1 49.11 38.51 49.11 38.4 0 47.8-145.8 54.89-198.1 5.53-39.2 15.6-75.79 31.28-105.8 21.4-40.92 38.33-72.05 38.33-111.09z"
+        />
+        <path
+            fill="none"
+            stroke="#ffffff"
+            stroke-opacity="0.26"
+            stroke-width="4"
+            d="M170 150c14-36 48-58 88-58"
+            stroke-linecap="round"
+        />
+    </g>
+
+    <g fill="#ffffff" fill-opacity="0.16">
+        <circle cx="290" cy="630" r="38"/>
+        <circle cx="340" cy="630" r="20"/>
+        <circle cx="910" cy="210" r="26"/>
+        <circle cx="952" cy="210" r="14"/>
+    </g>
+</svg>

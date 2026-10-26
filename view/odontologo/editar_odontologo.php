@@ -14,7 +14,7 @@
 
     <h1>Editar odontólogo</h1>
 
-    <form action="../../app/logica_odontologo.php" method="POST">
+    <form action="logica_odontologo.php" method="POST">
 
         <input type="hidden" name="accion" value="actualizar">
 
@@ -71,8 +71,8 @@
     </form>
 
     <p>
-        <a href="lista_odontologos.php">Cancelar y volver al listado</a>
+        <a href="../view/odontologo/lista_odontologos.php">Cancelar y volver al listado</a>
     </p>
-
+    <script src="assests/js/animaciones.js"></script>
 </body>
 </html>
