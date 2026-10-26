@@ -1,10 +1,21 @@
 
 -- =====================================================================
--- SISTEMA DE CITAS ODONTOLÓGICAS (SCO)
+-- SISTEMA DE CITAS ODONTOLÓGICAS (SCO) - VERSIÓN 2.1 (CON LOGIN/AUTENTICACIÓN)
 -- Base de datos para PostgreSQL / pgAdmin
 -- =====================================================================
 
--- 1. TIPO ENUM (Estados de la cita)
+-- 1. ELIMINACIÓN DE OBJETOS PREVIOS (SI EXISTEN)
+DROP VIEW IF EXISTS v_historial_paciente CASCADE;
+DROP VIEW IF EXISTS v_agenda_dia CASCADE;
+DROP TABLE IF EXISTS detalle_cita CASCADE;
+DROP TABLE IF EXISTS cita CASCADE;
+DROP TABLE IF EXISTS servicio CASCADE;
+DROP TABLE IF EXISTS odontologo CASCADE;
+DROP TABLE IF EXISTS recepcionista CASCADE;
+DROP TABLE IF EXISTS paciente CASCADE;
+DROP TYPE IF EXISTS estado_cita CASCADE;
+
+-- 2. TIPO ENUM (Estados de la cita)
 CREATE TYPE estado_cita AS ENUM (
     'pendiente',
     'confirmada',
@@ -13,12 +24,11 @@ CREATE TYPE estado_cita AS ENUM (
     'no_show'
 );
 
-
 -- =====================================================================
--- 2. TABLAS MAESTRAS
+-- 3. TABLAS MAESTRAS Y ENTIDADES CON AUTENTICACIÓN
 -- =====================================================================
 
--- ---------- Paciente ----------
+-- ---------- Paciente (Entidad Pública via QR / Link) ----------
 CREATE TABLE paciente (
     id           INT GENERATED ALWAYS AS IDENTITY,
     nombre       VARCHAR(100) NOT NULL,
@@ -33,23 +43,38 @@ CREATE TABLE paciente (
     CONSTRAINT ck_paciente_fecha_nac CHECK (fecha_nac IS NULL OR fecha_nac <= CURRENT_DATE)
 );
 
+-- ---------- Recepcionista (Ente Administrativo con Inicio de Sesión) ----------
+CREATE TABLE recepcionista (
+    id            INT GENERATED ALWAYS AS IDENTITY,
+    nombre        VARCHAR(100) NOT NULL,
+    telefono      VARCHAR(20)  NOT NULL,
+    email         VARCHAR(100) UNIQUE NOT NULL, -- Usuario para login
+    password_hash VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña (bcrypt/argon2)
+    activo        BOOLEAN      NOT NULL DEFAULT TRUE,
+    ultimo_acceso TIMESTAMP,                    -- Auditoría de inicio de sesión
+    
+    CONSTRAINT pk_recepcionista PRIMARY KEY (id),
+    CONSTRAINT ck_recepcionista_nombre CHECK (length(trim(nombre)) > 0),
+    CONSTRAINT ck_recepcionista_email CHECK (email LIKE '%@%.%')
+);
 
-
--- ---------- Odontólogo ----------
+-- ---------- Odontólogo (Profesional con Inicio de Sesión y Disponibilidad) ----------
 CREATE TABLE odontologo (
     id              INT GENERATED ALWAYS AS IDENTITY,
     nombre          VARCHAR(100) NOT NULL,
     especialidad    VARCHAR(60)  NOT NULL,
     consultorio     VARCHAR(30),
     slug_publico    VARCHAR(60)  NOT NULL,
+    email           VARCHAR(100) UNIQUE NOT NULL, -- Usuario para login
+    password_hash   VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña
+    activo          BOOLEAN      NOT NULL DEFAULT TRUE, -- Disponibilidad para asignación
+    ultimo_acceso   TIMESTAMP,
     
     CONSTRAINT pk_odontologo PRIMARY KEY (id),
     CONSTRAINT uq_odontologo_slug UNIQUE (slug_publico),
-    CONSTRAINT ck_odontologo_nombre CHECK (length(trim(nombre)) > 0)
+    CONSTRAINT ck_odontologo_nombre CHECK (length(trim(nombre)) > 0),
+    CONSTRAINT ck_odontologo_email CHECK (email LIKE '%@%.%')
 );
-
-
-
 
 -- ---------- Servicio ----------
 CREATE TABLE servicio (
@@ -64,15 +89,15 @@ CREATE TABLE servicio (
     CONSTRAINT ck_servicio_precio CHECK (precio >= 0)
 );
 
-
 -- =====================================================================
--- 3. TABLA TRANSACCIONAL: CITA
+-- 4. TABLA TRANSACCIONAL: CITA
 -- =====================================================================
 CREATE TABLE cita (
     id                  INT GENERATED ALWAYS AS IDENTITY,
     paciente_id         INT          NOT NULL,
-    odontologo_id       INT          NOT NULL,
+    odontologo_id       INT          NOT NULL, -- Asignado manualmente por Recepcionista
     servicio_id         INT          NOT NULL,
+    recepcionista_id    INT,                   -- Recepcionista autenticada que gestionó/asignó
     fecha               DATE         NOT NULL,
     hora                TIME         NOT NULL,
     estado              estado_cita  NOT NULL DEFAULT 'pendiente',
@@ -94,10 +119,14 @@ CREATE TABLE cita (
         FOREIGN KEY (servicio_id) REFERENCES servicio (id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
 
-    -- RN-02: Sin choque de horario por odontólogo
+    CONSTRAINT fk_cita_recepcionista
+        FOREIGN KEY (recepcionista_id) REFERENCES recepcionista (id)
+        ON UPDATE CASCADE ON DELETE SET NULL,
+
+    -- RN-02: Sin choques de horario por odontólogo en la misma fecha y hora
     CONSTRAINT uq_agenda UNIQUE (odontologo_id, fecha, hora),
 
-    -- RN-03: Atención de 8:00 a 19:30, en intervalos de 30 minutos
+    -- RN-03: Atención de 08:00 a 19:30 en intervalos estrictos de 30 minutos
     CONSTRAINT ck_cita_horario CHECK (
         hora >= TIME '08:00'
         AND hora <= TIME '19:30'
@@ -105,16 +134,15 @@ CREATE TABLE cita (
         AND EXTRACT(SECOND FROM hora) = 0
     ),
 
-    -- RN-06: Cancelar exige motivo obligatorio
+    -- RN-06: La cancelación exige motivo obligatoriamente
     CONSTRAINT ck_cita_cancelacion CHECK (
         estado <> 'cancelada'
         OR length(trim(COALESCE(motivo_cancelacion, ''))) > 0
     )
 );
 
-
 -- =====================================================================
--- 4. DETALLE_CITA (Detalle clínico, 1 por cita)
+-- 5. DETALLE_CITA (Detalle clínico, 1 por cita completada)
 -- =====================================================================
 CREATE TABLE detalle_cita (
     id              INT GENERATED ALWAYS AS IDENTITY,
@@ -135,27 +163,26 @@ CREATE TABLE detalle_cita (
         FOREIGN KEY (servicio_id) REFERENCES servicio (id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
 
-    -- RN-04: Máximo un detalle por cita
+    -- RN-04: Máximo un detalle clínico por cita
     CONSTRAINT uq_detalle_cita UNIQUE (cita_id)
 );
 
-
 -- =====================================================================
--- 5. ÍNDICES (Optimización de agenda e historial)
+-- 6. ÍNDICES STRATEGICOS DE RENDIMIENTO Y BÚSQUEDA
 -- =====================================================================
+CREATE INDEX ix_recepcionista_email ON recepcionista (lower(email));
+CREATE INDEX ix_odontologo_email ON odontologo (lower(email));
 CREATE INDEX ix_cita_fecha ON cita (fecha);
 CREATE INDEX ix_cita_paciente ON cita (paciente_id, fecha DESC);
-CREATE INDEX ix_cita_servicio ON cita (servicio_id);
+CREATE INDEX ix_cita_odontologo ON cita (odontologo_id, fecha);
 CREATE INDEX ix_paciente_nombre ON paciente (lower(nombre));
 CREATE INDEX ix_paciente_telefono ON paciente (telefono);
-CREATE INDEX ix_detalle_servicio ON detalle_cita (servicio_id);
-
 
 -- =====================================================================
--- 6. VISTAS
+-- 7. VISTAS OPTIMIZADAS
 -- =====================================================================
 
--- Agenda del día: hora, paciente, servicio, estado
+-- Vista Agenda del Día (Utilizada por Recepción para monitorear y asignar)
 CREATE VIEW v_agenda_dia AS
 SELECT
     c.id            AS cita_id,
@@ -163,19 +190,22 @@ SELECT
     c.hora,
     o.id            AS odontologo_id,
     o.nombre        AS odontologo,
+    o.activo        AS odontologo_activo,
     o.consultorio,
     p.nombre        AS paciente,
     p.telefono,
     s.nombre        AS servicio,
     s.duracion_min,
+    rec.nombre      AS asignado_por_recepcionista,
     c.estado,
     c.motivo
 FROM cita c
-INNER JOIN paciente   p ON p.id = c.paciente_id
-INNER JOIN odontologo o ON o.id = c.odontologo_id
-INNER JOIN servicio   s ON s.id = c.servicio_id;
+INNER JOIN paciente       p   ON p.id = c.paciente_id
+INNER JOIN odontologo     o   ON o.id = c.odontologo_id
+INNER JOIN servicio       s   ON s.id = c.servicio_id
+LEFT JOIN  recepcionista rec ON rec.id = c.recepcionista_id;
 
--- Ficha del paciente: citas + detalle clínico
+-- Vista Ficha del Paciente (Utilizada por el Odontólogo en consulta)
 CREATE VIEW v_historial_paciente AS
 SELECT
     p.id            AS paciente_id,
@@ -191,149 +221,34 @@ SELECT
     d.procedimiento,
     d.nota_clinica
 FROM paciente p
-INNER JOIN cita c       ON c.paciente_id = p.id
-INNER JOIN odontologo o ON o.id = c.odontologo_id
-INNER JOIN servicio s   ON s.id = c.servicio_id
+INNER JOIN cita c        ON c.paciente_id = p.id
+INNER JOIN odontologo o  ON o.id = c.odontologo_id
+INNER JOIN servicio s    ON s.id = c.servicio_id
 LEFT JOIN detalle_cita d ON d.cita_id = c.id;
 
+-- =====================================================================
+-- 8. DATOS DE PRUEBA (CON HASHES DE CLAVE SIMULADOS)
+-- =====================================================================
 
--- =====================================================================
--- 7. DATOS DE PRUEBA
--- =====================================================================
 INSERT INTO paciente (nombre, telefono, email, fecha_nac, alergias) VALUES
  ('Laura Gomez', '3001112233', 'laura@mail.com', '1995-03-14', 'Penicilina'),
- ('Carlos Perez', '3104445566', 'carlos@mail.com', '1988-11-02', NULL),
- ('Marta Rojas', '3207778899', NULL, '2001-07-21', 'Latex'),
- ('Andres Silva', '3151239876', 'andres@mail.com', NULL, NULL);
+ ('Carlos Perez', '3104445566', 'carlos@mail.com', '1988-11-02', NULL);
 
-INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico) VALUES
-('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres'),
-('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza'),
-('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios');
+-- Claves de prueba encriptadas con algoritmo Bcrypt ($2a$12$...)
+INSERT INTO recepcionista (nombre, telefono, email, password_hash) VALUES
+ ('María López', '3009998877', 'maria.recepcion@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8');
+
+INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, activo) VALUES
+ ('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres', 'ana.torres@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
+ ('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza', 'luis.mendoza@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
+ ('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios', 'sofia.rios@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', FALSE);
 
 INSERT INTO servicio (nombre, duracion_min, precio) VALUES
  ('Consulta general', 30, 50000.00),
  ('Limpieza dental', 30, 80000.00),
- ('Calza (resina)', 60, 150000.00),
- ('Endodoncia', 90, 450000.00),
- ('Control de ortodoncia', 30, 70000.00);
+ ('Calza (resina)', 60, 150000.00);
 
--- Citas (fechas futuras)
-INSERT INTO cita (paciente_id, odontologo_id, servicio_id, fecha, hora, estado, motivo) VALUES
-(1, 1, 1, CURRENT_DATE + 1, '09:00', 'pendiente', 'Dolor en muela'),
-(2, 1, 2, CURRENT_DATE + 1, '09:30', 'confirmada', 'Limpieza semestral'),
-(3, 2, 5, CURRENT_DATE + 1, '10:00', 'pendiente', 'Control mensual'),
-(4, 3, 4, CURRENT_DATE + 2, '14:00', 'pendiente', 'Dolor fuerte'),
-(1, 2, 5, CURRENT_DATE + 3, '11:00', 'pendiente', NULL);
-
-
-
-
-
-
--- Actualizar cita completada y agregar detalle clínico
-UPDATE cita SET estado = 'completada' WHERE id = 2;
-
-INSERT INTO detalle_cita (cita_id, servicio_id, detalle, procedimiento, nota_clinica) VALUES
-(2, 2, 'Acumulo de sarro leve', 'Profilaxis con ultrasonido', 'Control en 6 meses');
-
--- Actualizar cita cancelada (con motivo obligatorio)
-UPDATE cita 
-   SET estado = 'cancelada',
-       motivo_cancelacion = 'Paciente viaja' 
- WHERE id = 5;
-
-
-
-
-
-
--- =====================================================================
--- 8. CONSULTAS DE EJEMPLO (DML)
--- =====================================================================
-
--- 8.1 Agenda del día
-SELECT hora, paciente, servicio, odontologo, estado
-FROM v_agenda_dia
-WHERE fecha = CURRENT_DATE + 1
-ORDER BY hora;
-
--- 8.2 Agenda del día filtrada por odontólogo
-SELECT hora, paciente, servicio, estado
-FROM v_agenda_dia
-WHERE fecha = CURRENT_DATE + 1
-  AND odontologo_id = 1
-ORDER BY hora;
-
--- 8.3 Ficha del paciente
-SELECT fecha, hora, servicio, odontologo, estado, procedimiento, nota_clinica
-FROM v_historial_paciente
-WHERE paciente_id = 1
-ORDER BY fecha DESC, hora DESC;
-
--- 8.4 Buscar paciente por nombre o teléfono
-SELECT id, nombre, telefono, email
-FROM paciente
-WHERE lower(nombre) LIKE lower('%laura%')
-   OR telefono LIKE '%3001%';
-
--- 8.5 Cita completa con todas las tablas unidas
-SELECT 
-    c.id, c.fecha, c.hora, c.estado,
-    p.nombre AS paciente,
-    o.nombre AS odontologo,
-    s.nombre AS servicio,
-    s.precio,
-    d.procedimiento,
-    d.nota_clinica
-FROM cita c
-INNER JOIN paciente   p ON p.id = c.paciente_id
-INNER JOIN odontologo o ON o.id = c.odontologo_id
-INNER JOIN servicio   s ON s.id = c.servicio_id
-LEFT JOIN detalle_cita d ON d.cita_id = c.id
-ORDER BY c.fecha, c.hora;
-
--- 8.6 Horas libres de un odontólogo en una fecha
-SELECT h.hora_libre
-FROM generate_series(
-        TIMESTAMP '2000-01-01 08:00',
-        TIMESTAMP '2000-01-01 19:30',
-        INTERVAL '30 minutes'
-     ) AS g(t)
-CROSS JOIN LATERAL (
-    SELECT g.t::time AS hora_libre
-) h
-LEFT JOIN cita c
-      ON c.hora = h.hora_libre
-      AND c.fecha = CURRENT_DATE + 1
-      AND c.odontologo_id = 1
-      AND c.estado NOT IN ('cancelada', 'no_show')
-WHERE c.id IS NULL
-ORDER BY h.hora_libre;
-
--- 8.7 Agenda pública por QR: datos del odontólogo
-SELECT o.nombre, o.especialidad, s.nombre AS servicio, s.duracion_min
-FROM odontologo o
-CROSS JOIN servicio s
-WHERE o.slug_publico = 'dra-ana-torres'
-ORDER BY s.nombre;
-
--- 8.8 Citas por odontólogo (cuántas y de qué estado)
-SELECT o.nombre, c.estado, COUNT(c.id) AS total
-FROM odontologo o
-LEFT JOIN cita c ON c.odontologo_id = o.id
-GROUP BY o.nombre, c.estado
-ORDER BY o.nombre, c.estado;
-
--- 8.9 Servicios más solicitados
-SELECT s.nombre, COUNT(c.id) AS veces
-FROM servicio s
-LEFT JOIN cita c ON c.servicio_id = s.id
-GROUP BY s.nombre
-ORDER BY veces DESC;
-
--- 8.10 Pacientes sin ninguna cita
-SELECT p.id, p.nombre
-FROM paciente p
-LEFT JOIN cita c ON c.paciente_id = p.id
-WHERE c.id IS NULL;
+-- Cita agendada por el paciente e ingresada/asignada por la Recepcionista (id 1)
+INSERT INTO cita (paciente_id, odontologo_id, servicio_id, recepcionista_id, fecha, hora, estado, motivo) VALUES
+ (1, 1, 1, 1, CURRENT_DATE + 1, '09:00', 'pendiente', 'Dolor en muela'),
+ (2, 2, 2, 1, CURRENT_DATE + 1, '09:30', 'confirmada', 'Limpieza semestral');
