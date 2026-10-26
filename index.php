@@ -36,10 +36,10 @@
                     <div class="card-body">
                         <div class="icon-box"><i class="fa-solid fa-hospital-user"></i></div>
                         <h4 class="card-title fw-bold text-dark">Pacientes</h4>
-                        <p class="card-text text-muted">Administra el historial de pacientes y agenda de citas médicas.</p>
+                        <p class="card-text text-muted">Administra el historial de pacientes y datos generales.</p>
                         <div class="d-grid gap-2 mt-4">
                             <a href="view/paciente/lista_pacientes.php" class="btn btn-outline-primary btn-lg"><i class="fa-solid fa-list me-2"></i>Ver Pacientes</a>
-                            <a href="view/paciente/form_cita.php" class="btn btn-primary btn-lg"><i class="fa-solid fa-calendar-plus me-2"></i>Agendar Cita</a>
+                            <a href="view/paciente/form_paciente.php" class="btn btn-primary btn-lg"><i class="fa-solid fa-user-plus me-2"></i>Nuevo Paciente</a>
                         </div>
                     </div>
                 </div>
@@ -75,6 +75,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- Fila Inferior para Gestión de Citas y Agenda -->
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div class="card card-custom shadow-sm p-4 text-center bg-white">
+                    <div class="card-body">
+                        <div class="icon-box text-success mb-2"><i class="fa-solid fa-calendar-days"></i></div>
+                        <h4 class="card-title fw-bold text-dark">Módulo de Citas y Agenda</h4>
+                        <p class="card-text text-muted">Control general de programación, asignación de odontólogos activos y turnos.</p>
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <a href="view/cita/lista_citas.php" class="btn btn-outline-success btn-lg px-4"><i class="fa-solid fa-calendar-days me-2"></i>Ver Agenda / Citas</a>
+                            <a href="view/cita/form_cita.php" class="btn btn-success btn-lg px-4"><i class="fa-solid fa-calendar-plus me-2"></i>Agendar Nueva Cita</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Bootstrap JS -->
