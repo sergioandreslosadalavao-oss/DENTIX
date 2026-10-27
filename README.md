@@ -1,4 +1,4 @@
-# SCO — Sistema de Citas Odontológicas
+# DENTIX — Sistema de Citas Odontológicas
 
 ## Descripción
 
