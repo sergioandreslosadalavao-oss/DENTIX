@@ -1,5 +1,5 @@
 /* =========================================================
-   SCO · Animaciones de la landing (GSAP + ScrollTrigger)
+    DENTIX · Animaciones de la landing (GSAP + ScrollTrigger)
    ========================================================= */
 
 (() => {

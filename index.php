@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SCO, Sistema de Citas Odontológicas: gestiona pacientes, odontólogos y servicios en un solo lugar.">
-    <title>SCO | Sistema de Citas Odontológicas</title>
+    <meta name="description" content="DENTIX, Sistema de Citas Odontológicas: gestiona pacientes, odontólogos y servicios en un solo lugar.">
+    <title>DENTIX | Sistema de Citas Odontológicas</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,14 +20,14 @@
 
     <header class="site-header">
         <div class="header__inner">
-            <a class="brand" href="index.php" aria-label="SCO, inicio">
+            <a class="brand" href="index.php" aria-label="DENTIX, inicio">
                 <span class="brand__mark" aria-hidden="true">
                     <svg viewBox="0 0 448 512" role="img">
                         <path d="M443.98 96.01c0-56.43-45.53-96.01-112.9-96.01-44.65 0-60.15 25-92.08 25-31.03 0-48.88-25-92.08-25C77.55 0 32 39.59 32 96.01c0 39.02 16.93 70.15 38.33 111.1 15.68 30.02 25.75 66.62 31.28 105.8C108.7 366.2 118.1 512 156.5 512c24.41 0 31.51-21.11 38.51-49.11 5.95-23.84 12.06-48.39 29.09-48.39 17.03 0 23.14 24.55 29.09 48.39 7 28 14.1 49.11 38.51 49.11 38.4 0 47.8-145.8 54.89-198.1 5.53-39.2 15.6-75.79 31.28-105.8 21.4-40.92 38.33-72.05 38.33-111.09z"/>
                     </svg>
                 </span>
                 <span class="brand__text">
-                    SCO
+                    DENTIX
                     <small>Sistema de Citas Odontológicas</small>
                 </span>
             </a>
@@ -192,7 +192,7 @@
                 <header class="section-head">
                     <span class="eyebrow">Módulos del sistema</span>
                     <h2>Todo lo que tu consultorio necesita, <em>en un solo lugar</em></h2>
-                    <p>Accede a cada área de SCO con un clic y mantén la información de tu equipo siempre al día.</p>
+                    <p>Accede a cada área de DENTIX con un clic y mantén la información de tu equipo siempre al día.</p>
                 </header>
 
                 <div class="modules__grid">
@@ -295,7 +295,7 @@
                     <span class="eyebrow">Hecho para tu día a día</span>
                     <h2>Menos papeleo, <em>más sonrisas</em></h2>
                     <p>
-                        SCO reúne la información esencial de tu consultorio para que puedas
+                        DENTIX reúne la información esencial de tu consultorio para que puedas
                         dedicar más tiempo a lo importante: tus pacientes.
                     </p>
 
@@ -403,7 +403,7 @@
                         <svg viewBox="0 0 448 512"><path d="M443.98 96.01c0-56.43-45.53-96.01-112.9-96.01-44.65 0-60.15 25-92.08 25-31.03 0-48.88-25-92.08-25C77.55 0 32 39.59 32 96.01c0 39.02 16.93 70.15 38.33 111.1 15.68 30.02 25.75 66.62 31.28 105.8C108.7 366.2 118.1 512 156.5 512c24.41 0 31.51-21.11 38.51-49.11 5.95-23.84 12.06-48.39 29.09-48.39 17.03 0 23.14 24.55 29.09 48.39 7 28 14.1 49.11 38.51 49.11 38.4 0 47.8-145.8 54.89-198.1 5.53-39.2 15.6-75.79 31.28-105.8 21.4-40.92 38.33-72.05 38.33-111.09z"/></svg>
                     </span>
                     <span class="brand__text">
-                        SCO
+                        DENTIX
                         <small>Sistema de Citas Odontológicas</small>
                     </span>
                 </a>
@@ -416,7 +416,7 @@
                 <a href="view/servicio/lista_servicios.php">Servicios</a>
             </nav>
 
-            <p class="footer__copy">© <?= date('Y') ?> SCO. Todos los derechos reservados.</p>
+            <p class="footer__copy">© <?= date('Y') ?> DENTIX. Todos los derechos reservados.</p>
         </div>
     </footer>
 

@@ -43,7 +43,7 @@ unset($_SESSION["mensaje"], $_SESSION["tipo_mensaje"]);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar servicio | SCO</title>
+    <title>Editar servicio | DENTIX</title>
 </head>
 <body>
 

@@ -1,8 +1,8 @@
-# SCO — Sistema de Citas Odontológicas
+# DENTIX — Sistema de Citas Odontológicas
 
 ## Descripción
 
-SCO (Sistema de Citas Odontológicas) es un proyecto web desarrollado para apoyar la gestión de un consultorio odontológico. Su objetivo es facilitar el registro, consulta, actualización y eliminación de información de pacientes y odontólogos mediante una aplicación desarrollada con PHP y PostgreSQL.
+DENTIX (Sistema de Citas Odontológicas) es un proyecto web desarrollado para apoyar la gestión de un consultorio odontológico. Su objetivo es facilitar el registro, consulta, actualización y eliminación de información de pacientes y odontólogos mediante una aplicación desarrollada con PHP y PostgreSQL.
 
 El proyecto organiza la conexión a la base de datos, la lógica de procesamiento y las interfaces de usuario en directorios separados, facilitando su mantenimiento y comprensión.
 
@@ -18,7 +18,7 @@ El proyecto organiza la conexión a la base de datos, la lógica de procesamient
 ## Estructura del proyecto
 
 ```text
-SCO/
+DENTIX/
 ├── app/
 │   ├── logica_odontologo.php
 │   └── logica_paciente.php
@@ -116,7 +116,7 @@ Este archivo explica el propósito del proyecto, sus tecnologías, la organizaci
 
 ## Requisitos previos
 
-Antes de ejecutar SCO, necesitas:
+Antes de ejecutar DENTIX, necesitas:
 
 - XAMPP con Apache y PHP 8.2, o una versión compatible.
 - PostgreSQL 17, o una versión compatible con el esquema del proyecto.
@@ -198,7 +198,7 @@ La disponibilidad de cada ruta depende de la implementación actual del proyecto
 
 ## Colaboración
 
-SCO se mantiene mediante Git y GitHub. Los colaboradores autorizados pueden clonar el repositorio, configurar su propio entorno y proponer cambios.
+DENTIX se mantiene mediante Git y GitHub. Los colaboradores autorizados pueden clonar el repositorio, configurar su propio entorno y proponer cambios.
 
 Antes de trabajar, cada colaborador debe:
 

@@ -1,5 +1,5 @@
 /* =========================================================
-   SCO · Animaciones del panel administrativo
+    DENTIX · Animaciones del panel administrativo
    ========================================================= */
 
 (() => {

@@ -16,7 +16,7 @@ $mediaClass = $mediaClass ?? '';
     <img
         class="media-slot__img"
         src="<?= sco_e($mediaImage) ?>"
-        alt="Imagen del proyecto SCO"
+        alt="Imagen del proyecto DENTIX"
         loading="lazy"
     >
     <figcaption class="media-slot__overlay">

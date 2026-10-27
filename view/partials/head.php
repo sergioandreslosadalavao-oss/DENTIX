@@ -13,8 +13,8 @@ $activeNav = $activeNav ?? '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SCO, Sistema de Citas Odontológicas.">
-    <title><?= sco_e($pageTitle) ?> | SCO</title>
+    <meta name="description" content="DENTIX, Sistema de Citas Odontológicas.">
+    <title><?= sco_e($pageTitle) ?> | DENTIX</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,7 +48,7 @@ $activeNav = $activeNav ?? '';
                 </button>
 
                 <nav class="topbar__crumbs" aria-label="Miga de pan">
-                    <a href="<?= sco_href('index.php') ?>">SCO</a>
+                    <a href="<?= sco_href('index.php') ?>">DENTIX</a>
                     <span aria-hidden="true">/</span>
                     <strong><?= sco_e($pageSection) ?></strong>
                 </nav>

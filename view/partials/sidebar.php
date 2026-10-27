@@ -7,14 +7,14 @@ $activeNav = $activeNav ?? '';
 ?>
 <aside class="sidebar" id="sidebar">
     <div class="sidebar__top">
-        <a class="brand" href="<?= sco_href('index.php') ?>" aria-label="SCO, inicio">
+        <a class="brand" href="<?= sco_href('index.php') ?>" aria-label="DENTIX, inicio">
             <span class="brand__mark" aria-hidden="true">
                 <svg viewBox="0 0 448 512">
                     <path d="M443.98 96.01c0-56.43-45.53-96.01-112.9-96.01-44.65 0-60.15 25-92.08 25-31.03 0-48.88-25-92.08-25C77.55 0 32 39.59 32 96.01c0 39.02 16.93 70.15 38.33 111.1 15.68 30.02 25.75 66.62 31.28 105.8C108.7 366.2 118.1 512 156.5 512c24.41 0 31.51-21.11 38.51-49.11 5.95-23.84 12.06-48.39 29.09-48.39 17.03 0 23.14 24.55 29.09 48.39 7 28 14.1 49.11 38.51 49.11 38.4 0 47.8-145.8 54.89-198.1 5.53-39.2 15.6-75.79 31.28-105.8 21.4-40.92 38.33-72.05 38.33-111.09z"/>
                 </svg>
             </span>
             <span class="brand__text">
-                SCO
+                DENTIX
                 <small>Gestión odontológica</small>
             </span>
         </a>
