@@ -1,77 +1,101 @@
 <?php
+// lista_odontologos.php - Listado de Odontólogos
 require_once "../../config/database.php";
-
 try {
-    $stmt = $conexion->query("SELECT * FROM odontologo ORDER BY id ASC");
-    $odontologos = $stmt->fetchAll();
+    $odontologos = $conexion->query("SELECT * FROM odontologo ORDER BY id DESC")->fetchAll();
 } catch (PDOException $e) {
     $odontologos = [];
-    $error = $e->getMessage();
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Odontólogos - SCO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="../../assests/css/admin.css">
+    <link rel="stylesheet" href="../../assests/css/index.css">
 </head>
-<body class="bg-light">
-
-    <div class="container my-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-bold text-primary mb-1"><i class="fa-solid fa-user-doctor me-2"></i>Planta de Odontólogos</h2>
-                <p class="text-muted mb-0">Especialistas registrados en la clínica</p>
+<body class="admin-body" data-accent="odontologos">
+    <div class="page-progress"><span class="page-progress__bar"></span></div>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar__top">
+                <a href="../../index.php" class="brand">
+                    <div class="brand__mark"><i class="fa-solid fa-tooth"></i></div>
+                    <div class="brand__text">DENTIX<small>Panel Admin</small></div>
+                </a>
+                <button class="sidebar__close" id="sidebar-close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div>
-                <a href="form_odontologo.php" class="btn btn-success me-2"><i class="fa-solid fa-user-plus me-2"></i>Nuevo Odontólogo</a>
-                <a href="../../index.php" class="btn btn-outline-secondary"><i class="fa-solid fa-house me-2"></i>Inicio</a>
-            </div>
-        </div>
-
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger shadow-sm"><i class="fa-solid fa-triangle-exclamation me-2"></i>Error: <?php echo $error; ?></div>
-        <?php endif; ?>
-
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th class="py-3 px-4">ID</th>
-                                <th class="py-3">Nombre Especialista</th>
-                                <th class="py-3">Especialidad</th>
-                                <th class="py-3">Teléfono</th>
-                                <th class="py-3">Correo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($odontologos)): ?>
-                                <?php foreach ($odontologos as $o): ?>
-                                    <tr>
-                                        <td class="px-4 fw-bold text-secondary">#<?php echo htmlspecialchars($o['id']); ?></td>
-                                        <td class="fw-bold"><?php echo htmlspecialchars($o['nombre']); ?></td>
-                                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle"><?php echo htmlspecialchars($o['especialidad'] ?? 'General'); ?></span></td>
-                                        <td><i class="fa-solid fa-phone text-muted me-1"></i> <?php echo htmlspecialchars($o['telefono'] ?? 'N/A'); ?></td>
-                                        <td><i class="fa-solid fa-envelope text-muted me-1"></i> <?php echo htmlspecialchars($o['email'] ?? 'N/A'); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
+            <nav class="sidebar__nav">
+                <span class="sidebar__label">Navegación</span>
+                <a href="../../index.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-house"></i></span>Inicio</a>
+                <a href="../paciente/lista_pacientes.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-hospital-user"></i></span>Pacientes</a>
+                <a href="lista_odontologos.php" class="side-link is-active"><span class="side-link__icon"><i class="fa-solid fa-user-doctor"></i></span>Odontólogos</a>
+                <a href="../servicio/lista_servicios.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-notes-medical"></i></span>Servicios</a>
+                <a href="../cita/lista_citas.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
+            </nav>
+        </aside>
+        <main class="app-main">
+            <header class="topbar">
+                <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
+                <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Odontólogos</strong></div>
+            </header>
+            <div class="page">
+                <div class="panel">
+                    <div class="panel__head">
+                        <div>
+                            <h3 class="panel__title"><i class="fa-solid fa-user-doctor"></i> Cuerpo Médico</h3>
+                            <p class="panel__subtitle">Especialistas activos y disponibilidad.</p>
+                        </div>
+                        <div class="panel__tools">
+                            <a href="form_odontologo.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-user-plus"></i> Nuevo Odontólogo</a>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted">
-                                        <i class="fa-solid fa-user-slash fa-2x d-block mb-2"></i>No hay odontólogos registrados.
-                                    </td>
+                                    <th>#</th>
+                                    <th>Nombre</th>
+                                    <th>Especialidad</th>
+                                    <th>Teléfono</th>
+                                    <th>Correo</th>
+                                    <th class="text-center">Acciones</th>
                                 </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php if (count($odontologos) > 0): ?>
+                                    <?php foreach ($odontologos as $i => $o): ?>
+                                        <tr>
+                                            <td data-label="#"><span class="row-id"><?php echo $i + 1; ?></span></td>
+                                            <td data-label="Nombre"><strong><?php echo htmlspecialchars($o['nombre']); ?></strong></td>
+                                            <td data-label="Especialidad"><span class="chip chip--accent"><?php echo htmlspecialchars($o['especialidad']); ?></span></td>
+                                            <td data-label="Teléfono"><?php echo htmlspecialchars($o['telefono']); ?></td>
+                                            <td data-label="Correo" class="text-muted"><?php echo htmlspecialchars($o['correo']); ?></td>
+                                            <td data-label="Acciones" class="text-center">
+                                                <a href="editar_odontologo.php?id=<?php echo $o['id']; ?>" class="action action--edit"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr><td colspan="6" class="text-center text-muted py-4">No hay odontólogos registrados.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
+            <footer class="app-footer"><div>&copy; 2026 DENTIX</div><div>ADSO - SENA</div></footer>
+        </main>
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="../../assests/js/admin-animations.js"></script>
 </body>
 </html>
