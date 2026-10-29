@@ -1,33 +1,37 @@
-# SCO - Sistema de Citas Odontológicas (Rama: rama-maik)
+# DENTIX — Sistema de Citas Odontológicas
 
-Este repositorio contiene el desarrollo y la integración del **Sistema de Citas Odontológicas (SCO)**, un software web desarrollado en **PHP** y **PostgreSQL** para la gestión clínica, enfocado en optimizar el flujo de pacientes, especialistas y servicios.
+## 📋 Descripción General
+**DENTIX** (anteriormente SCO) es un sistema de gestión web orientado a consultorios odontológicos, desarrollado con **PHP** y **PostgreSQL** sobre un entorno local LAMPP. Su objetivo principal es optimizar los flujos de trabajo del rol de recepcionista y el cuerpo médico, facilitando la administración de pacientes, control de citas, asignación de especialistas y catálogo de servicios.
 
-## 🚀 Cambios y Mejoras Realizados en esta Rama
+---
 
-### 1. Integración y Backend
-* **Fusión de ramas:** Integración exitosa del repositorio del colaborador con la rama local `rama-maik` resolviendo conflictos de concurrencia y configuraciones base.
-* **Configuración de Base de Datos (`config/database.php`):** Ajuste de la conexión mediante **PDO** hacia **PostgreSQL** (puerto `5433`), conectando correctamente con la base de datos `citas_odontologicas` y adaptando las consultas a las tablas en singular (`paciente`, `odontologo`, `servicio`)[cite: 9].
-* **Habilitación de Drivers:** Configuración y activación de las extensiones `pgsql` y `pdo_pgsql` en el entorno XAMPP de PHP.
+## 🚀 Principales Modificaciones y Mejoras Implementadas
 
-### 2. Rediseño y Modernización del Frontend
-Se estandarizó toda la interfaz gráfica de usuario utilizando **Bootstrap 5** y **FontAwesome** para lograr un diseño moderno, limpio y completamente responsivo:
+### 1. Estandarización Visual de Módulos (UI/UX)
+* **Diseño Unificado**: Se refactorizaron todos los módulos (`Inicio`, `Pacientes`, `Odontólogos`, `Servicios` y `Citas`) para compartir la misma estructura de contenedores (`app-shell`, `panel`, `data-table`) y una barra lateral fija de navegación esmeralda.
+* **Consistencia de Botones**: Estandarización de botones de acción y formularios utilizando la paleta de colores institucional.
 
-* **Dashboard Principal (`index.php`):**
-  * Creación de un banner superior (*hero banner*) institucional.
-  * Tarjetas interactivas con efectos de elevación (*hover*) para acceder rápidamente a los módulos de Pacientes, Odontólogos y Servicios.
-* **Módulo de Pacientes (`view/paciente/`):**
-  * **Listado (`lista_pacientes.php`):** Tabla estilizada con diseño moderno, alertas de alergias personalizadas y botones de acción rápidos.
-  * **Agendamiento de Citas (`form_cita.php`):** Formulario optimizado con selectores dinámicos para vincular pacientes y odontólogos.
-* **Módulo de Odontólogos (`view/odontologo/`):**
-  * **Registro (`form_odontologo.php`):** Formulario rediseñado con campos claros para nombre, especialidad y consultorio, acompañado de iconos descriptivos.
-  * **Listado (`lista_odontologos.php`):** Visualización en tabla limpia de la planta de profesionales.
-* **Módulo de Servicios (`view/servicio/`):**
-  * **Registro (`form_servicio.php`):** Formulario adaptado para el ingreso de tratamientos, control de duración en minutos y tarifas en pesos colombianos (COP).
-  * **Listado (`lista_servicios.php`):** Catálogo visual ordenado de procedimientos médicos.
+### 2. Módulo de Citas y Asignación
+* **Asignación Manual**: Interfaz rediseñada en `lista_citas.php` que permite a la recepcionista asignar dinámicamente odontólogos activos a las citas pendientes.
+
+### 3. Módulo de Odontólogos y Disponibilidad
+* **Control de Estado en Tiempo Real**: Se añadió la columna y lógica para visualizar si un especialista se encuentra **"Disponible"** u **"Ocupado / En Cita"**.
+* **Credenciales y Contacto**: Integración de campos de teléfono, correo (`email`) y autenticación segura con hash de contraseñas tanto en la vista como en el formulario de registro (`form_odontologo.php`).
+
+### 4. Módulo de Pacientes
+* **Expediente Completo**: Se incorporaron columnas de **Documento (Cédula)**, **Correo**, **Fecha de Nacimiento** y **Alergias** (con alertas visuales inteligentes) para que el personal clínico tenga los datos de riesgo a la mano.
+
+### 5. Catálogo de Servicios
+* **Detalle Clínico Ampliado**: Se estructuró la base de datos y la interfaz para registrar **Descripciones clínicas**, **Duración promedio en minutos** y **Tarifas (COP)**.
+* **Nuevos Procedimientos**: Incorporación de servicios avanzados como *Blanqueamiento dental*, *Extracción dental* y *Endodoncia*.
+
+---
 
 ## 🛠️ Tecnologías Utilizadas
-* **PHP** (Lógica del lado del servidor y controladores).
-* **PostgreSQL** (Gestión relacional de base de datos).
-* **Bootstrap 5** (Framework CSS para diseño UI/UX).
-* **FontAwesome** (Iconografía vectorial).
-* **XAMPP / Apache** (Entorno de servidor local).
+* **Backend**: PHP (Programación estructurada y PDO).
+* **Base de Datos**: PostgreSQL.
+* **Frontend**: HTML5, CSS3, Bootstrap 5, Font Awesome, Google Fonts (Manrope y Sora) y animaciones con GSAP.
+* **Control de Versiones**: Git & GitHub.
+
+---
+*Desarrollado para el programa ADSO — SENA.*
