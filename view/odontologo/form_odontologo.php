@@ -1,26 +1,38 @@
 <?php
-// form_odontologo.php - Registro de Nuevo Odontólogo con diseño unificado
+// view/odontologo/form_odontologo.php - Formulario de Registro de Odontólogo con Teléfono y Correo
 require_once "../../config/database.php";
+session_start();
 
-$mensaje = "";
 $error = "";
+$mensaje = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre'] ?? '');
     $especialidad = trim($_POST['especialidad'] ?? '');
     $consultorio = trim($_POST['consultorio'] ?? '');
+    $telefono = trim($_POST['telefono'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = trim($_POST['password'] ?? '');
 
-    if (!empty($nombre) && !empty($especialidad) && !empty($consultorio)) {
+    if (!empty($nombre) && !empty($especialidad) && !empty($email) && !empty($password)) {
         try {
-            $stmt = $conexion->prepare("INSERT INTO odontologo (nombre, especialidad, consultorio, estado) VALUES (?, ?, ?, 'activo')");
-            $stmt->execute([$nombre, $especialidad, $consultorio]);
+            // Generar un slug público único a partir del nombre
+            $slug_publico = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $nombre)));
+            
+            // Hash seguro para la contraseña
+            $password_hash = password_hash($password, PASSWORD_BCRYPT);
 
-            $mensaje = "¡Odontólogo registrado con éxito en el sistema!";
+            $stmt = $conexion->prepare("INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, telefono, activo) VALUES (?, ?, ?, ?, ?, ?, ?, false)");
+            $stmt->execute([$nombre, $especialidad, $consultorio, $slug_publico, $email, $password_hash, $telefono]);
+
+            $mensaje = "¡Odontólogo registrado con éxito!";
+            header("Location: lista_odontologos.php");
+            exit();
         } catch (PDOException $e) {
-            $error = "Error al guardar el odontólogo: " . $e->getMessage();
+            $error = "Error al registrar en la base de datos: " . $e->getMessage();
         }
     } else {
-        $error = "Por favor, completa todos los campos del formulario.";
+        $error = "Por favor, completa los campos obligatorios (Nombre, Especialidad, Correo y Contraseña).";
     }
 }
 ?>
@@ -29,106 +41,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Odontólogo - DENTIX</title>
-    
-    <!-- Google Fonts -->
+    <title>Registrar Odontólogo - SCO</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome para Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    
-    <!-- ESTILOS GLOBALES DE LA CARPETA ASSESTS -->
     <link rel="stylesheet" href="../../assests/css/admin.css">
     <link rel="stylesheet" href="../../assests/css/index.css">
 </head>
-<body class="admin-body" style="display: grid; place-items: center; min-height: 100vh; padding: 24px 0; background-color: #f4f7fa;">
+<body class="bg-light" style="display: grid; place-items: center; min-height: 100vh; margin: 0; font-family: 'Manrope', sans-serif;">
 
-    <div class="container" style="max-width: 520px;">
-        <div class="form-card shadow-lg p-4 p-md-5 border-0 rounded-4 bg-white">
+    <div class="container" style="max-width: 540px; padding: 20px;">
+        <div class="card border-0 shadow-lg rounded-4 p-4 p-md-5 bg-white">
             
-            <!-- Encabezado del Formulario -->
             <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
                 <div>
-                    <span class="eyebrow mb-1 text-primary fw-bold" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Especialistas</span>
-                    <h2 class="fw-bold text-dark mb-0 fs-3">
-                        <i class="fa-solid fa-user-doctor text-primary me-2"></i> Registrar Odontólogo
-                    </h2>
+                    <span class="badge bg-teal bg-opacity-10 text-teal px-3 py-1 rounded-pill fw-bold mb-2" style="background-color: #ccfbf1; color: #0d9488; font-size: 0.75rem;">
+                        <i class="fa-solid fa-circle-dot me-1"></i> ESPECIALISTAS
+                    </span>
+                    <h3 class="fw-bold text-dark m-0" style="font-family: 'Sora', sans-serif;">Registrar Odontólogo</h3>
                 </div>
-                <a href="../../index.php" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <a href="lista_odontologos.php" class="text-muted text-decoration-none small fw-semibold">
                     <i class="fa-solid fa-arrow-left me-1"></i> Inicio
                 </a>
             </div>
 
-            <!-- Alertas de éxito o error -->
-            <?php if (!empty($mensaje)): ?>
-                <div class="alert alert-success py-2 mb-4 small d-flex align-items-center border-0 shadow-sm" role="alert">
-                    <i class="fa-solid fa-circle-check me-2 fs-5 text-success"></i> 
-                    <div>
-                        <?php echo $mensaje; ?>
-                        <div class="mt-1"><a href="lista_odontologos.php" class="fw-bold text-success text-decoration-underline">Ver listado de odontólogos</a></div>
-                    </div>
-                </div>
-            <?php endif; ?>
-
             <?php if (!empty($error)): ?>
-                <div class="alert alert-danger py-2 mb-4 small d-flex align-items-center border-0 shadow-sm" role="alert">
-                    <i class="fa-solid fa-triangle-exclamation me-2 fs-5 text-danger"></i> <?php echo $error; ?>
+                <div class="alert alert-danger py-2 small mb-4 border-0 shadow-sm d-flex align-items-center">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $error; ?>
                 </div>
             <?php endif; ?>
 
-            <!-- Formulario de Registro -->
             <form action="form_odontologo.php" method="POST">
+                
                 <div class="mb-3">
-                    <label for="nombre" class="form-label fw-semibold small text-dark">Nombre Completo</label>
+                    <label for="nombre" class="form-label small fw-semibold text-dark">Nombre Completo</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-user-doctor text-muted"></i></span>
-                        <input type="text" class="form-control border-start-0 py-2" id="nombre" name="nombre" required placeholder="Ej. Dr. Carlos Pérez">
+                        <input type="text" class="form-control border-start-0" id="nombre" name="nombre" placeholder="Ej. Dr. Carlos Pérez" required>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="especialidad" class="form-label fw-semibold small text-dark">Especialidad</label>
+                    <label for="especialidad" class="form-label small fw-semibold text-dark">Especialidad</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-stethoscope text-muted"></i></span>
-                        <input type="text" class="form-control border-start-0 py-2" id="especialidad" name="especialidad" required placeholder="Ej. Ortodoncia / Endodoncia">
+                        <input type="text" class="form-control border-start-0" id="especialidad" name="especialidad" placeholder="Ej. Ortodoncia / Endodoncia" required>
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <label for="consultorio" class="form-label fw-semibold small text-dark">Consultorio</label>
+                <div class="mb-3">
+                    <label for="consultorio" class="form-label small fw-semibold text-dark">Consultorio</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-door-open text-muted"></i></span>
-                        <input type="text" class="form-control border-start-0 py-2" id="consultorio" name="consultorio" required placeholder="Ej. Consultorio 302">
+                        <input type="text" class="form-control border-start-0" id="consultorio" name="consultorio" placeholder="Ej. Consultorio 302">
                     </div>
                 </div>
 
-                <div class="d-grid gap-2 mb-3">
-                    <button type="submit" class="btn btn-primary py-2 fw-bold text-white rounded-pill" style="background: #0d9488; border: none;">
-                        <i class="fa-solid fa-user-plus me-2"></i> Registrar Odontólogo
-                    </button>
+                <!-- NUEVO CAMPO: TELÉFONO -->
+                <div class="mb-3">
+                    <label for="telefono" class="form-label small fw-semibold text-dark">Teléfono de Contacto</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-phone text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" id="telefono" name="telefono" placeholder="Ej. 3104587621">
+                    </div>
+                </div>
+
+                <!-- NUEVO CAMPO: CORREO ELECTRÓNICO (email) -->
+                <div class="mb-3">
+                    <label for="email" class="form-label small fw-semibold text-dark">Correo Electrónico (Login)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-envelope text-muted"></i></span>
+                        <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="carlos.perez@clinica.com" required>
+                    </div>
+                </div>
+
+                <!-- NUEVO CAMPO: CONTRASEÑA -->
+                <div class="mb-4">
+                    <label for="password" class="form-label small fw-semibold text-dark">Contraseña de Acceso</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-lock text-muted"></i></span>
+                        <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn text-white w-100 py-2 fw-bold rounded-pill mb-4 shadow-sm" style="background-color: #0d9488; border: none;">
+                    <i class="fa-solid fa-user-plus me-2"></i> Registrar Odontólogo
+                </button>
+
+                <div class="text-center pt-3 border-top small">
+                    <a href="lista_odontologos.php" class="text-primary fw-bold text-decoration-none d-inline-flex align-items-center gap-1 mb-2">
+                        <i class="fa-solid fa-list"></i> Ver odontólogos registrados
+                    </a>
+                    <br>
+                    <a href="../../index.php" class="text-muted text-decoration-none">
+                        <i class="fa-solid fa-house me-1"></i> Volver al inicio
+                    </a>
                 </div>
             </form>
-
-            <!-- Botones de navegación inferior -->
-            <div class="d-flex flex-column gap-2 mt-4 pt-3 border-top">
-                <a href="lista_odontologos.php" class="btn btn-outline-primary btn-sm py-2 rounded-pill fw-semibold">
-                    <i class="fa-solid fa-list me-1"></i> Ver odontólogos registrados
-                </a>
-                <a href="../../index.php" class="btn btn-light btn-sm py-2 rounded-pill text-muted fw-semibold">
-                    <i class="fa-solid fa-house me-1"></i> Volver al inicio
-                </a>
-            </div>
 
         </div>
     </div>
 
-    <!-- Bootstrap JS y Librerías -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="../../assests/js/admin-animations.js"></script>
 </body>
 </html>

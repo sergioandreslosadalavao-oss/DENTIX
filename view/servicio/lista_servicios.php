@@ -1,5 +1,5 @@
 <?php
-// lista_servicios.php - Listado de Servicios
+// view/servicio/lista_servicios.php - Listado de Servicios actualizado con Descripción, Duración y Costo
 require_once "../../config/database.php";
 try {
     $servicios = $conexion->query("SELECT * FROM servicio ORDER BY id DESC")->fetchAll();
@@ -24,6 +24,8 @@ try {
 <body class="admin-body" data-accent="servicios">
     <div class="page-progress"><span class="page-progress__bar"></span></div>
     <div class="app-shell">
+        
+        <!-- BARRA LATERAL UNIFICADA -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar__top">
                 <a href="../../index.php" class="brand">
@@ -41,30 +43,35 @@ try {
                 <a href="../cita/lista_citas.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
             </nav>
         </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
         <main class="app-main">
             <header class="topbar">
                 <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
                 <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Servicios</strong></div>
             </header>
+
             <div class="page">
                 <div class="panel">
                     <div class="panel__head">
                         <div>
                             <h3 class="panel__title"><i class="fa-solid fa-notes-medical"></i> Catálogo de Servicios</h3>
-                            <p class="panel__subtitle">Tratamientos odontológicos y tarifas.</p>
+                            <p class="panel__subtitle">Tratamientos odontológicos, descripciones clínicas, duración estimada y tarifas vigentes.</p>
                         </div>
                         <div class="panel__tools">
                             <a href="form_servicio.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-plus"></i> Nuevo Servicio</a>
                         </div>
                     </div>
+
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th>#</th>
                                     <th>Nombre del Servicio</th>
-                                    <th>Descripción</th>
-                                    <th>Precio</th>
+                                    <th>Descripción Clínica</th>
+                                    <th>Duración Promedio</th>
+                                    <th>Costo / Precio</th>
                                     <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
@@ -73,23 +80,46 @@ try {
                                     <?php foreach ($servicios as $i => $s): ?>
                                         <tr>
                                             <td data-label="#"><span class="row-id"><?php echo $i + 1; ?></span></td>
+                                            
+                                            <!-- NOMBRE DEL SERVICIO -->
                                             <td data-label="Nombre"><strong><?php echo htmlspecialchars($s['nombre']); ?></strong></td>
-                                            <td data-label="Descripción" class="text-muted"><?php echo htmlspecialchars($s['descripcion']); ?></td>
-                                            <td data-label="Precio"><span class="money">$ <?php echo number_format($s['precio'], 0, ',', '.'); ?></span></td>
+                                            
+                                            <!-- DESCRIPCIÓN -->
+                                            <td data-label="Descripción" class="text-muted" style="max-width: 280px; font-size: 0.85rem;">
+                                                <?php echo htmlspecialchars($s['descripcion'] ?? 'Sin descripción detallada.'); ?>
+                                            </td>
+                                            
+                                            <!-- DURACIÓN PROMEDIO -->
+                                            <td data-label="Duración">
+                                                <span class="badge bg-light text-secondary border px-2 py-1">
+                                                    <i class="fa-solid fa-clock me-1 text-teal" style="color: #0d9488;"></i> <?php echo htmlspecialchars($s['duracion_min']); ?> min
+                                                </span>
+                                            </td>
+                                            
+                                            <!-- COSTO / PRECIO -->
+                                            <td data-label="Precio">
+                                                <span class="money">$ <?php echo number_format($s['precio'], 0, ',', '.'); ?></span>
+                                            </td>
+                                            
+                                            <!-- ACCIONES -->
                                             <td data-label="Acciones" class="text-center">
                                                 <a href="editar_servicio.php?id=<?php echo $s['id']; ?>" class="action action--edit"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <tr><td colspan="5" class="text-center text-muted py-4">No hay servicios registrados.</td></tr>
+                                    <tr><td colspan="6" class="text-center text-muted py-4">No hay servicios registrados.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-            <footer class="app-footer"><div>&copy; 2026 DENTIX</div><div>ADSO - SENA</div></footer>
+
+            <footer class="app-footer">
+                <div>&copy; 2026 DENTIX</div>
+                <div>ADSO - SENA</div>
+            </footer>
         </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
