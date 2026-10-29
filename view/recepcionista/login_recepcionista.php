@@ -4,7 +4,7 @@ require_once "../../config/database.php";
 session_start();
 
 if (isset($_SESSION['recepcionista_id'])) {
-    header("Location: ../odontologo/lista_odontologos.php");
+    header("Location: ../cita/lista_citas.php");
     exit();
 }
 
@@ -36,7 +36,7 @@ unset($_SESSION['error']);
 
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger py-2 small mb-4 shadow-sm border-0 d-flex align-items-center">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $error; ?>
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             <?php endif; ?>
 
@@ -44,10 +44,10 @@ unset($_SESSION['error']);
                 <input type="hidden" name="accion" value="login">
 
                 <div class="mb-3">
-                    <label for="correo" class="form-label small fw-semibold text-dark">Correo Electrónico</label>
+                    <label for="email" class="form-label small fw-semibold text-dark">Correo Electrónico</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-envelope text-muted"></i></span>
-                        <input type="email" class="form-control border-start-0" id="correo" name="correo" placeholder="jose.antonio@gmail.com" required>
+                        <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="jose.antonio@gmail.com" autocomplete="username" required>
                     </div>
                 </div>
 
@@ -55,7 +55,7 @@ unset($_SESSION['error']);
                     <label for="password" class="form-label small fw-semibold text-dark">Contraseña</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-lock text-muted"></i></span>
-                        <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="••••••••" required>
+                        <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
                     </div>
                 </div>
 

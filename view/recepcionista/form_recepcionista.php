@@ -1,47 +1,9 @@
 <?php
-// form_recepcionista.php - Registro de recepcionista con redirección forzada al panel principal de admin
-require_once "../../config/database.php";
+// form_recepcionista.php - Registro de recepcionista
 session_start();
 
-$error = "";
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = trim($_POST['nombre'] ?? '');
-    $correo = trim($_POST['correo'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-
-    if (!empty($nombre) && !empty($correo) && !empty($password)) {
-        try {
-            // Verificar si el correo ya existe
-            $stmt_check = $conexion->prepare("SELECT id FROM recepcionista WHERE correo = ?");
-            $stmt_check->execute([$correo]);
-            
-            if ($stmt_check->fetch()) {
-                $error = "El correo ya se encuentra registrado.";
-            } else {
-                // Encriptar contraseña y registrar
-                $password_hashed = password_hash($password, PASSWORD_BCRYPT);
-                $stmt = $conexion->prepare("INSERT INTO recepcionista (nombre, correo, password) VALUES (?, ?, ?)");
-                $stmt->execute([$nombre, $correo, $password_hashed]);
-                
-                $nuevo_id = $conexion->lastInsertId();
-
-                // Autologin e iniciar sesión de una vez
-                $_SESSION['recepcionista_id'] = $nuevo_id;
-                $_SESSION['recepcionista_nombre'] = $nombre;
-                $_SESSION['recepcionista_correo'] = $correo;
-
-                // REDIRECCIÓN FORZADA AL PANEL DE ADMINISTRACIÓN PRINCIPAL (index.php de la raíz)
-                header("Location: ../../index.php");
-                exit();
-            }
-        } catch (PDOException $e) {
-            $error = "Error al registrar la cuenta: " . $e->getMessage();
-        }
-    } else {
-        $error = "Por favor, completa todos los campos del formulario.";
-    }
-}
+$error = $_SESSION['error'] ?? '';
+unset($_SESSION['error']);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -76,12 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Alerta de error -->
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger py-2 small mb-4 shadow-sm border-0 d-flex align-items-center">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $error; ?>
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             <?php endif; ?>
 
             <!-- Formulario de Registro -->
-            <form action="form_recepcionista.php" method="POST">
+            <form action="../../app/logica_recepcionista.php" method="POST">
+                <input type="hidden" name="accion" value="registro">
+
                 <div class="mb-3">
                     <label for="nombre" class="form-label small fw-semibold text-dark">Nombre Completo</label>
                     <div class="input-group">
@@ -91,10 +55,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="mb-3">
-                    <label for="correo" class="form-label small fw-semibold text-dark">Correo Electrónico</label>
+                    <label for="telefono" class="form-label small fw-semibold text-dark">Teléfono</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-phone text-muted"></i></span>
+                        <input type="tel" class="form-control border-start-0" id="telefono" name="telefono" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label small fw-semibold text-dark">Correo Electrónico</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-envelope text-muted"></i></span>
-                        <input type="email" class="form-control border-start-0" id="correo" name="correo" placeholder="jose.antonio@gmail.com" required>
+                        <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="jose.antonio@gmail.com" autocomplete="username" required>
                     </div>
                 </div>
 
@@ -102,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="password" class="form-label small fw-semibold text-dark">Contraseña</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-lock text-muted"></i></span>
-                        <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="••••••••" required>
+                        <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="••••••••" autocomplete="new-password" required>
                     </div>
                 </div>
 

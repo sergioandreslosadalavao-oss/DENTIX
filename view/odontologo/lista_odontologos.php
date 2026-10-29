@@ -1,11 +1,23 @@
 <?php
 // view/odontologo/lista_odontologos.php - Listado de Odontólogos con Teléfono, Email y Estado
 require_once "../../config/database.php";
+$error = "";
 try {
-    // Obtenemos los odontólogos ordenados por ID
-    $odontologos = $conexion->query("SELECT * FROM odontologo ORDER BY id DESC")->fetchAll();
+    $odontologos = $conexion->query(
+        "SELECT o.*,
+                EXISTS (
+                    SELECT 1
+                    FROM cita c
+                    WHERE c.odontologo_id = o.id
+                      AND c.estado IN ('pendiente', 'confirmada')
+                ) AS en_cita
+         FROM odontologo o
+         ORDER BY o.id DESC"
+    )->fetchAll();
 } catch (PDOException $e) {
+    error_log("Error al cargar odontólogos: " . $e->getMessage());
     $odontologos = [];
+    $error = "No se pudo cargar el listado de odontólogos.";
 }
 ?>
 <!DOCTYPE html>
@@ -53,6 +65,12 @@ try {
             </header>
 
             <div class="page">
+                <?php if ($error !== ""): ?>
+                    <div class="alert alert-danger py-2 small mb-3 border-0 shadow-sm" role="alert">
+                        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php endif; ?>
+
                 <div class="panel">
                     <div class="panel__head">
                         <div>
@@ -98,10 +116,15 @@ try {
                                             <!-- ESTADO / DISPONIBILIDAD -->
                                             <td data-label="Estado" class="text-center">
                                                 <?php 
-                                                    $esta_activo = isset($o['activo']) ? $o['activo'] : false;
-                                                    
-                                                    if ($esta_activo == 1 || $esta_activo === true || strtolower($esta_activo) === 't'): 
+                                                    $esta_activo = in_array($o['activo'], [true, 1, '1', 't', 'true'], true);
+                                                    $en_cita = in_array($o['en_cita'], [true, 1, '1', 't', 'true'], true);
+
+                                                    if (!$esta_activo):
                                                 ?>
+                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                        <i class="fa-solid fa-circle-minus me-1"></i> Inactivo
+                                                    </span>
+                                                <?php elseif ($en_cita): ?>
                                                     <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
                                                         <i class="fa-solid fa-circle-dot me-1"></i> Ocupado / En Cita
                                                     </span>

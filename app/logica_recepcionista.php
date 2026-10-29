@@ -1,75 +1,88 @@
 <?php
-// app/logica_recepcionista.php - Procesamiento de inicio de sesión y registro de recepcionistas
-require_once "../config/database.php";
+require_once __DIR__ . '/../config/database.php';
 session_start();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    // CASO 1: INICIO DE SESIÓN
-    if (isset($_POST['accion']) && $_POST['accion'] === 'login') {
-        $correo = trim($_POST['correo'] ?? '');
-        $password = trim($_POST['password'] ?? '');
+$accion = $_POST['accion'] ?? '';
 
-        if (!empty($correo) && !empty($password)) {
-            try {
-                $stmt = $conexion->prepare("SELECT id, nombre, correo, password FROM recepcionista WHERE correo = ?");
-                $stmt->execute([$correo]);
-                $recepcionista = $stmt->fetch();
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../view/recepcionista/login_recepcionista.php');
+    exit();
+}
 
-                if ($recepcionista && (password_verify($password, $recepcionista['password']) || $password === $recepcionista['password'])) {
-                    $_SESSION['recepcionista_id'] = $recepcionista['id'];
-                    $_SESSION['recepcionista_nombre'] = $recepcionista['nombre'];
-                    $_SESSION['recepcionista_correo'] = $recepcionista['correo'];
+if ($accion === 'login') {
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $password = $_POST['password'] ?? '';
 
-                    // Redirección directa al Panel de Administración (Vista con Menú Lateral)
-                    header("Location: ../view/odontologo/lista_odontologos.php");
-                    exit();
-                } else {
-                    $_SESSION['error'] = "Correo o contraseña incorrectos.";
-                    header("Location: ../view/recepcionista/login_recepcionista.php");
-                    exit();
-                }
-            } catch (PDOException $e) {
-                $_SESSION['error'] = "Error en la base de datos: " . $e->getMessage();
-                header("Location: ../view/recepcionista/login_recepcionista.php");
-                exit();
-            }
-        }
+    if ($email === '' || $password === '') {
+        $_SESSION['error'] = 'Ingresa tu correo y contraseña.';
+        header('Location: ../view/recepcionista/login_recepcionista.php');
+        exit();
     }
 
-    // CASO 2: REGISTRO DE NUEVO RECEPCIONISTA
-    if (isset($_POST['accion']) && $_POST['accion'] === 'registro') {
-        $nombre = trim($_POST['nombre'] ?? '');
-        $correo = trim($_POST['correo'] ?? '');
-        $password = trim($_POST['password'] ?? '');
+    try {
+        $stmt = $conexion->prepare(
+            'SELECT id, nombre, email, password_hash FROM recepcionista WHERE email = ? AND activo = TRUE'
+        );
+        $stmt->execute([$email]);
+        $recepcionista = $stmt->fetch();
 
-        if (!empty($nombre) && !empty($correo) && !empty($password)) {
-            try {
-                $stmt_check = $conexion->prepare("SELECT id FROM recepcionista WHERE correo = ?");
-                $stmt_check->execute([$correo]);
-
-                if ($stmt_check->fetch()) {
-                    $_SESSION['error'] = "El correo ya se encuentra registrado.";
-                    header("Location: ../view/recepcionista/form_recepcionista.php");
-                    exit();
-                } else {
-                    $password_hashed = password_hash($password, PASSWORD_BCRYPT);
-                    $stmt = $conexion->prepare("INSERT INTO recepcionista (nombre, correo, password) VALUES (?, ?, ?)");
-                    $stmt->execute([$nombre, $correo, $password_hashed]);
-
-                    $_SESSION['recepcionista_id'] = $conexion->lastInsertId();
-                    $_SESSION['recepcionista_nombre'] = $nombre;
-                    $_SESSION['recepcionista_correo'] = $correo;
-
-                    // Redirección directa al Panel de Administración (Vista con Menú Lateral)
-                    header("Location: ../view/odontologo/lista_odontologos.php");
-                    exit();
-                }
-            } catch (PDOException $e) {
-                $_SESSION['error'] = "Error al registrar: " . $e->getMessage();
-                header("Location: ../view/recepcionista/form_recepcionista.php");
-                exit();
-            }
+        if (!$recepcionista || !password_verify($password, $recepcionista['password_hash'])) {
+            $_SESSION['error'] = 'Correo o contraseña incorrectos.';
+            header('Location: ../view/recepcionista/login_recepcionista.php');
+            exit();
         }
+
+        $stmt = $conexion->prepare('UPDATE recepcionista SET ultimo_acceso = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$recepcionista['id']]);
+
+        session_regenerate_id(true);
+        $_SESSION['recepcionista_id'] = $recepcionista['id'];
+        $_SESSION['recepcionista_nombre'] = $recepcionista['nombre'];
+        $_SESSION['recepcionista_email'] = $recepcionista['email'];
+
+        header('Location: ../view/cita/lista_citas.php');
+        exit();
+    } catch (PDOException $e) {
+        error_log('Error al iniciar sesión de recepción: ' . $e->getMessage());
+        $_SESSION['error'] = 'No se pudo iniciar sesión. Inténtalo de nuevo.';
+        header('Location: ../view/recepcionista/login_recepcionista.php');
+        exit();
     }
 }
+
+if ($accion === 'registro') {
+    $nombre = trim($_POST['nombre'] ?? '');
+    $telefono = trim($_POST['telefono'] ?? '');
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $password = $_POST['password'] ?? '';
+
+    if ($nombre === '' || $telefono === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
+        $_SESSION['error'] = 'Completa todos los campos con datos válidos.';
+        header('Location: ../view/recepcionista/form_recepcionista.php');
+        exit();
+    }
+
+    try {
+        $stmt = $conexion->prepare(
+            'INSERT INTO recepcionista (nombre, telefono, email, password_hash) VALUES (?, ?, ?, ?) RETURNING id'
+        );
+        $stmt->execute([$nombre, $telefono, $email, password_hash($password, PASSWORD_DEFAULT)]);
+        $recepcionistaId = $stmt->fetchColumn();
+
+        session_regenerate_id(true);
+        $_SESSION['recepcionista_id'] = $recepcionistaId;
+        $_SESSION['recepcionista_nombre'] = $nombre;
+        $_SESSION['recepcionista_email'] = $email;
+
+        header('Location: ../view/cita/lista_citas.php');
+        exit();
+    } catch (PDOException $e) {
+        error_log('Error al registrar recepcionista: ' . $e->getMessage());
+        $_SESSION['error'] = 'No se pudo crear la cuenta. Verifica si el correo ya está registrado.';
+        header('Location: ../view/recepcionista/form_recepcionista.php');
+        exit();
+    }
+}
+
+header('Location: ../view/recepcionista/login_recepcionista.php');
+exit();

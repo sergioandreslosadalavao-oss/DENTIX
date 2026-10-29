@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Hash seguro para la contraseña
             $password_hash = password_hash($password, PASSWORD_BCRYPT);
 
-            $stmt = $conexion->prepare("INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, telefono, activo) VALUES (?, ?, ?, ?, ?, ?, ?, false)");
+            $stmt = $conexion->prepare("INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, telefono, activo) VALUES (?, ?, ?, ?, ?, ?, ?, true)");
             $stmt->execute([$nombre, $especialidad, $consultorio, $slug_publico, $email, $password_hash, $telefono]);
 
             $mensaje = "¡Odontólogo registrado con éxito!";

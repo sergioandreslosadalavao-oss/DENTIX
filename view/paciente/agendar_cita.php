@@ -5,22 +5,34 @@ require_once "../../config/database.php";
 $mensaje = "";
 $error = "";
 
-// Obtener la lista de odontólogos activos para mostrarlos en el select
+$odontologos = [];
+$servicios = [];
 try {
-    $stmt_odonto = $conexion->prepare("SELECT id, nombre FROM odontologo WHERE estado = 'activo' OR activo = true");
-    $stmt_odonto->execute();
-    $odontologos = $stmt_odonto->fetchAll();
+    $odontologos = $conexion->query(
+        "SELECT id, nombre FROM odontologo WHERE activo = TRUE ORDER BY nombre"
+    )->fetchAll();
+    $servicios = $conexion->query(
+        "SELECT id, nombre FROM servicio ORDER BY nombre"
+    )->fetchAll();
 } catch (PDOException $e) {
-    $odontologos = [];
+    error_log("Error al cargar opciones para agendar cita: " . $e->getMessage());
+    $error = "No se pudieron cargar las opciones para agendar la cita.";
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cedula_paciente = trim($_POST['cedula'] ?? '');
     $id_odontologo = trim($_POST['id_odontologo'] ?? '');
+    $servicio_id = trim($_POST['servicio_id'] ?? '');
     $fecha = trim($_POST['fecha'] ?? '');
     $hora = trim($_POST['hora'] ?? '');
 
-    if (!empty($cedula_paciente) && !empty($id_odontologo) && !empty($fecha) && !empty($hora)) {
+    if (
+        $cedula_paciente !== ''
+        && ctype_digit($id_odontologo)
+        && ctype_digit($servicio_id)
+        && $fecha !== ''
+        && $hora !== ''
+    ) {
         try {
             // Verificar si el paciente existe mediante su cédula
             $stmt_paciente = $conexion->prepare("SELECT id FROM paciente WHERE cedula = ?");
@@ -30,16 +42,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($paciente) {
                 $paciente_id = $paciente['id'];
 
-                // Guardar la cita asignando el paciente y el odontólogo seleccionado
-                $stmt_cita = $conexion->prepare("INSERT INTO cita (paciente_id, odontologo_id, fecha, hora) VALUES (?, ?, ?, ?)");
-                $stmt_cita->execute([$paciente_id, $id_odontologo, $fecha, $hora]);
+                $stmt_cita = $conexion->prepare(
+                    "INSERT INTO cita (paciente_id, odontologo_id, servicio_id, fecha, hora, estado)
+                     SELECT ?, o.id, s.id, ?, ?, 'pendiente'
+                     FROM odontologo o
+                     CROSS JOIN servicio s
+                     WHERE o.id = ? AND o.activo = TRUE AND s.id = ?
+                     RETURNING id"
+                );
+                $stmt_cita->execute([
+                    $paciente_id,
+                    $fecha,
+                    $hora,
+                    $id_odontologo,
+                    $servicio_id
+                ]);
 
-                $mensaje = "¡Cita agendada con éxito! Te esperamos en la clínica.";
+                if ($stmt_cita->fetchColumn() !== false) {
+                    $mensaje = "¡Cita agendada! La recepción la revisará y confirmará próximamente.";
+                } else {
+                    $error = "Selecciona un odontólogo activo y un servicio válido.";
+                }
             } else {
                 $error = "No encontramos ningún paciente registrado con esta cédula. Por favor regístrate primero.";
             }
         } catch (PDOException $e) {
-            $error = "Error al agendar la cita: " . $e->getMessage();
+            error_log("Error al agendar cita desde el formulario: " . $e->getMessage());
+            $error = "No se pudo agendar la cita. Verifica la fecha y hora o intenta con otro horario.";
         }
     } else {
         $error = "Por favor completa todos los campos para agendar la cita.";
@@ -82,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if (!empty($mensaje)): ?>
                 <div class="alert alert-success py-2 mb-4 small d-flex align-items-center" role="alert">
                     <i class="fa-solid fa-circle-check me-2 fs-5"></i> 
-                    <div><?php echo $mensaje; ?></div>
+                    <div><?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?></div>
                 </div>
             <?php endif; ?>
 
@@ -90,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="alert alert-danger py-2 mb-4 small d-flex align-items-center" role="alert">
                     <i class="fa-solid fa-triangle-exclamation me-2 fs-5"></i> 
                     <div>
-                        <?php echo $error; ?>
+                        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                         <div class="mt-1"><a href="form_paciente.php" class="fw-bold text-danger text-decoration-underline">Registrarme ahora</a></div>
                     </div>
                 </div>
@@ -103,6 +132,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-id-card text-muted"></i></span>
                         <input type="text" class="form-control border-start-0" id="cedula" name="cedula" required placeholder="Ingresa tu cédula registrada">
                     </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="servicio_id" class="form-label fw-semibold small">Servicio</label>
+                    <select class="form-select" id="servicio_id" name="servicio_id" required>
+                        <option value="">-- Seleccione un servicio --</option>
+                        <?php foreach ($servicios as $servicio): ?>
+                            <option value="<?php echo $servicio['id']; ?>"><?php echo htmlspecialchars($servicio['nombre'], ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="mb-3">

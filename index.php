@@ -1,5 +1,8 @@
 <?php
 // index.php - Landing Page y Dashboard Principal con menús actualizados
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -48,7 +51,7 @@
             <!-- Botones de Acceso Rápido en la Barra Superior -->
             <div class="header__cta" style="display: flex; gap: 10px; align-items: center;">
                 <!-- Botón de Administrador / Recepcionista -->
-                <a href="view/recepcionista/lista_recepcionista.php" class="btn btn--ghost btn--small">
+                <a href="view/recepcionista/login_recepcionista.php" class="btn btn--ghost btn--small">
                      <i class="fa-solid fa-user-shield"></i> Administrador
                 </a>
                 

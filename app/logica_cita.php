@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['tipo_mensaje'] = "error";
     }
 
-    header("Location: ../view/paciente/lista_pacientes.php");
+    header("Location: ../view/cita/lista_citas.php");
     exit();
 }
 ?>

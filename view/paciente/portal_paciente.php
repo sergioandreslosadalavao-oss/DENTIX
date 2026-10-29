@@ -6,6 +6,20 @@ $mensaje = "";
 $error = "";
 $paciente_encontrado = false;
 $paciente_datos = null;
+$odontologos = [];
+$servicios = [];
+
+try {
+    $odontologos = $conexion->query(
+        "SELECT id, nombre FROM odontologo WHERE activo = TRUE ORDER BY nombre"
+    )->fetchAll();
+    $servicios = $conexion->query(
+        "SELECT id, nombre FROM servicio ORDER BY nombre"
+    )->fetchAll();
+} catch (PDOException $e) {
+    error_log("Error al cargar opciones para agendar cita: " . $e->getMessage());
+    $error = "No se pudieron cargar las opciones para agendar la cita.";
+}
 
 // Paso 1: Validar si el paciente ingresa su cédula para buscarlo
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verificar_cedula'])) {
@@ -34,21 +48,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verificar_cedula'])) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guardar_cita'])) {
     $paciente_id = trim($_POST['paciente_id'] ?? '');
     $id_odontologo = trim($_POST['id_odontologo'] ?? '');
+    $servicio_id = trim($_POST['servicio_id'] ?? '');
     $fecha = trim($_POST['fecha'] ?? '');
     $hora = trim($_POST['hora'] ?? '');
 
-    if (!empty($paciente_id) && !empty($id_odontologo) && !empty($fecha) && !empty($hora)) {
+    if (
+        ctype_digit($paciente_id)
+        && ctype_digit($id_odontologo)
+        && ctype_digit($servicio_id)
+        && $fecha !== ''
+        && $hora !== ''
+    ) {
         try {
-            // Guardar la cita para que luego la administre el recepcionista
-            $stmt_cita = $conexion->prepare("INSERT INTO cita (paciente_id, odontologo_id, fecha, hora) VALUES (?, ?, ?, ?)");
-            $stmt_cita->execute([$paciente_id, $id_odontologo, $fecha, $hora]);
+            $stmt_cita = $conexion->prepare(
+                "INSERT INTO cita (paciente_id, odontologo_id, servicio_id, fecha, hora, estado)
+                 SELECT ?, o.id, s.id, ?, ?, 'pendiente'
+                 FROM odontologo o
+                 CROSS JOIN servicio s
+                 WHERE o.id = ? AND o.activo = TRUE AND s.id = ?
+                 RETURNING id"
+            );
+            $stmt_cita->execute([
+                $paciente_id,
+                $fecha,
+                $hora,
+                $id_odontologo,
+                $servicio_id
+            ]);
 
-            $mensaje = "¡Su cita ha sido agendada con éxito! La recepción la validará próximamente.";
-            // Limpiar datos para reiniciar flujo o mostrar éxito
-            $paciente_encontrado = false;
+            if ($stmt_cita->fetchColumn() !== false) {
+                $mensaje = "¡Su cita ha sido agendada! La recepción la revisará y confirmará próximamente.";
+                $paciente_encontrado = false;
+            } else {
+                $error = "Selecciona un odontólogo activo y un servicio válido.";
+                $paciente_encontrado = true;
+            }
         } catch (PDOException $e) {
-            $error = "Error al guardar la cita: " . $e->getMessage();
-            $paciente_encontrado = true; // Mantener formulario abierto
+            error_log("Error al guardar cita desde portal del paciente: " . $e->getMessage());
+            $error = "No se pudo agendar la cita. Verifica la fecha y hora o intenta con otro horario.";
+            $paciente_encontrado = true;
         }
     } else {
         $error = "Complete todos los campos de la cita.";
@@ -56,14 +94,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guardar_cita'])) {
     }
 }
 
-// Obtener lista de odontólogos activos para el select
-try {
-    $stmt_odonto = $conexion->prepare("SELECT id, nombre FROM odontologo WHERE estado = 'activo' OR activo = true");
-    $stmt_odonto->execute();
-    $odontologos = $stmt_odonto->fetchAll();
-} catch (PDOException $e) {
-    $odontologos = [];
-}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -102,7 +132,7 @@ try {
             <?php if (!empty($mensaje)): ?>
                 <div class="alert alert-success py-3 mb-4 small d-flex align-items-center shadow-sm" role="alert">
                     <i class="fa-solid fa-circle-check me-3 fs-4 text-success"></i> 
-                    <div><strong>¡Excelente!</strong><br><?php echo $mensaje; ?></div>
+                    <div><strong>¡Excelente!</strong><br><?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?></div>
                 </div>
             <?php endif; ?>
 
@@ -110,7 +140,7 @@ try {
                 <div class="alert alert-danger py-2 mb-4 small d-flex align-items-center" role="alert">
                     <i class="fa-solid fa-triangle-exclamation me-2 fs-5"></i> 
                     <div>
-                        <?php echo $error; ?>
+                        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                         <div class="mt-1"><a href="form_paciente.php" class="fw-bold text-danger text-decoration-underline">Ir al formulario de registro</a></div>
                     </div>
                 </div>
@@ -166,6 +196,16 @@ try {
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="servicio_id" class="form-label fw-semibold small">Servicio</label>
+                        <select class="form-select" id="servicio_id" name="servicio_id" required>
+                            <option value="">-- Seleccione un servicio --</option>
+                            <?php foreach ($servicios as $servicio): ?>
+                                <option value="<?php echo $servicio['id']; ?>"><?php echo htmlspecialchars($servicio['nombre'], ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="mb-3">
