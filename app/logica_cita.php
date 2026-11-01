@@ -1,8 +1,13 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . "/sesion.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Agenda administrativa (form_cita / editar_cita): exige sesión de recepción
+    sesion_requiere_recepcionista("../view/recepcionista/login_recepcionista.php");
+
     $paciente_id = $_POST['paciente_id'];
     $odontologo_id = $_POST['odontologo_id'];
     $servicio_id = $_POST['servicio_id'];
@@ -31,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['tipo_mensaje'] = "error";
     }
 
-    header("Location: ../view/paciente/lista_pacientes.php");
+    header("Location: ../view/cita/lista_citas.php");
     exit();
 }
 ?>

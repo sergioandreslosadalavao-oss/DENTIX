@@ -1,45 +1,97 @@
 <?php
-// Incluimos directamente el archivo de conexión que ya configura el PDO
-require_once(__DIR__ . '/../config/database.php');
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/sesion.php';
+session_start();
 
-class LogicaRecepcionista {
-    private $conn;
+$accion = $_POST['accion'] ?? '';
 
-    public function __construct() {
-        global $conexion; // Heredamos la variable global $conexion definida en database.php
-        $this->conn = $conexion;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../view/recepcionista/login_recepcionista.php');
+    exit();
+}
+
+if ($accion === 'login') {
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $password = $_POST['password'] ?? '';
+
+    if ($email === '' || $password === '') {
+        $_SESSION['error'] = 'Ingresa tu correo y contraseña.';
+        header('Location: ../view/recepcionista/login_recepcionista.php');
+        exit();
     }
 
-    // Obtener solo los odontólogos que están activos para las citas
-    public function obtenerOdontologosActivos() {
-        try {
-            $sql = "SELECT id_odontologo, nombre, apellido, especialidad 
-                    FROM odontologo 
-                    WHERE estado = 'activo' OR activo = 1 OR estado IS NULL";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            return [];
-        }
-    }
+    try {
+        $stmt = $conexion->prepare(
+            'SELECT id, nombre, email, password_hash FROM recepcionista WHERE email = ? AND activo = TRUE'
+        );
+        $stmt->execute([$email]);
+        $recepcionista = $stmt->fetch();
 
-    // Registrar una cita asignada por la recepcionista
-    public function registrarCitaPorRecepcionista($id_paciente, $id_odontologo, $id_servicio, $fecha_cita, $hora_cita) {
-        try {
-            $sql = "INSERT INTO cita (id_paciente, id_odontologo, id_servicio, fecha_cita, hora_cita, estado) 
-                    VALUES (:id_paciente, :id_odontologo, :id_servicio, :fecha_cita, :hora_cita, 'Pendiente')";
-            $stmt = $this->conn->prepare($sql);
-            return $stmt->execute([
-                ':id_paciente'   => $id_paciente,
-                ':id_odontologo' => $id_odontologo,
-                ':id_servicio'   => $id_servicio,
-                ':fecha_cita'    => $fecha_cita,
-                ':hora_cita'     => $hora_cita
-            ]);
-        } catch (PDOException $e) {
-            return false;
+        if (!$recepcionista || !password_verify($password, $recepcionista['password_hash'])) {
+            $_SESSION['error'] = 'Correo o contraseña incorrectos.';
+            header('Location: ../view/recepcionista/login_recepcionista.php');
+            exit();
         }
+
+        $stmt = $conexion->prepare('UPDATE recepcionista SET ultimo_acceso = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$recepcionista['id']]);
+
+        session_regenerate_id(true);
+        $_SESSION['recepcionista_id'] = $recepcionista['id'];
+        $_SESSION['recepcionista_nombre'] = $recepcionista['nombre'];
+        $_SESSION['recepcionista_email'] = $recepcionista['email'];
+
+        header('Location: ../view/cita/lista_citas.php');
+        exit();
+    } catch (PDOException $e) {
+        error_log('Error al iniciar sesión de recepción: ' . $e->getMessage());
+        $_SESSION['error'] = 'No se pudo iniciar sesión. Inténtalo de nuevo.';
+        header('Location: ../view/recepcionista/login_recepcionista.php');
+        exit();
     }
 }
-?>
+
+if ($accion === 'registro') {
+
+    // Bootstrap de cuentas: las cuentas de recepción se crean desde una
+    // sesión de recepción autenticada. La primera nace del seed SQL.
+    sesion_requiere_recepcionista(
+        '../view/recepcionista/login_recepcionista.php',
+        'Solo una recepcionista autenticada puede crear cuentas nuevas de recepción.'
+    );
+
+    $nombre = trim($_POST['nombre'] ?? '');
+    $telefono = trim($_POST['telefono'] ?? '');
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $password = $_POST['password'] ?? '';
+
+    if ($nombre === '' || $telefono === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
+        $_SESSION['error'] = 'Completa todos los campos con datos válidos.';
+        header('Location: ../view/recepcionista/form_recepcionista.php');
+        exit();
+    }
+
+    try {
+        $stmt = $conexion->prepare(
+            'INSERT INTO recepcionista (nombre, telefono, email, password_hash) VALUES (?, ?, ?, ?) RETURNING id'
+        );
+        $stmt->execute([$nombre, $telefono, $email, password_hash($password, PASSWORD_DEFAULT)]);
+        $recepcionistaId = $stmt->fetchColumn();
+
+        session_regenerate_id(true);
+        $_SESSION['recepcionista_id'] = $recepcionistaId;
+        $_SESSION['recepcionista_nombre'] = $nombre;
+        $_SESSION['recepcionista_email'] = $email;
+
+        header('Location: ../view/cita/lista_citas.php');
+        exit();
+    } catch (PDOException $e) {
+        error_log('Error al registrar recepcionista: ' . $e->getMessage());
+        $_SESSION['error'] = 'No se pudo crear la cuenta. Verifica si el correo ya está registrado.';
+        header('Location: ../view/recepcionista/form_recepcionista.php');
+        exit();
+    }
+}
+
+header('Location: ../view/recepcionista/login_recepcionista.php');
+exit();

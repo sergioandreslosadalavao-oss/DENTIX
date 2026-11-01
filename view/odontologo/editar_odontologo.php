@@ -1,6 +1,11 @@
 
 <?php
 // Esta vista recibe $odontologo desde logica_odontologo.php.
+// Guarda de acceso directo por URL: la vista también exige sesión de líder (RN-07).
+require_once __DIR__ . "/../../config/database.php";
+require_once __DIR__ . "/../../app/sesion.php";
+session_start();
+sesion_requiere_odontologo_lider("../recepcionista/login_recepcionista.php");
 ?>
 
 <!DOCTYPE html>

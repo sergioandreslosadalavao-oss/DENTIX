@@ -3,6 +3,10 @@
 session_start();
 
 require_once __DIR__ . "/../../config/database.php";
+require_once __DIR__ . "/../../app/sesion.php";
+
+// Módulo administrativo: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 
 $id = filter_input(INPUT_GET, "id", FILTER_VALIDATE_INT);
 

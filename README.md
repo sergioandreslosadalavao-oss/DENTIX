@@ -1,215 +1,119 @@
-# DENTIX — Sistema de Citas Odontológicas
+# DENTIX
 
-## Descripción
+Sistema web para la gestión de pacientes, odontólogos, servicios y citas de un consultorio odontológico. El proyecto también aparece como SCO (Sistema de Citas Odontológicas) en algunos nombres y comentarios heredados.
 
-SCO (Sistema de Citas Odontológicas) es un proyecto web desarrollado para apoyar la gestión de un consultorio odontológico. Su objetivo es facilitar el registro, consulta, actualización y eliminación de información de pacientes y odontólogos mediante una aplicación desarrollada con PHP y PostgreSQL.
+## Funcionalidades
 
-El proyecto organiza la conexión a la base de datos, la lógica de procesamiento y las interfaces de usuario en directorios separados, facilitando su mantenimiento y comprensión.
+- **Pacientes:** registro **público**, listado y edición, con datos de contacto y cédula en las vistas.
+- **Citas:** portal de solicitud **público** para pacientes y panel de recepción para revisar solicitudes, asignar odontólogo y confirmar citas pendientes.
+- **Odontólogos:** listado con estado, cargo y disponibilidad; alta, edición y deshabilitación (baja lógica, sin borrar historial) de asociados **solo por el odontólogo líder** (RN-07). El líder no puede deshabilitarse a sí mismo (RN-08) y solo puede existir **un líder activo a la vez**, garantizado por un índice único en la base de datos.
+- **Servicios:** creación, edición, listado y eliminación del catálogo con duración y precio.
+- **Acceso por rol:** inicio de sesión para recepción y odontólogo (`app/sesion.php`), con sesión por rol; las operaciones administrativas exigen sesión y **revalidan cargo y cuenta activa contra la base de datos** en cada acción (la sesión envejecida no es fuente de verdad). El login de odontólogos asociados queda denegado hasta que exista su módulo clínico.
+- **Interfaz:** página de inicio y paneles adaptables, con estilos propios y recursos visuales cargados localmente y desde CDN.
 
-## Tecnologías utilizadas
+La implementación clínica para que los odontólogos asociados atiendan citas no está disponible todavía. Por ahora, el acceso de odontólogo está limitado al líder y a la gestión del cuerpo médico.
 
-- **PHP 8.2:** procesamiento de formularios y lógica de la aplicación.
-- **PostgreSQL 17:** almacenamiento y administración de los datos.
-- **PDO:** conexión entre PHP y PostgreSQL.
-- **XAMPP:** entorno local para ejecutar Apache y PHP.
-- **HTML5:** estructura de las páginas y formularios.
-- **Git y GitHub:** control de versiones y colaboración.
+## Tecnologías
 
-## Estructura del proyecto
+- PHP con PDO y `pdo_pgsql`.
+- PostgreSQL.
+- Apache (el proyecto puede ejecutarse en XAMPP/LAMPP).
+- HTML, CSS y JavaScript; Bootstrap 5.3.2, Font Awesome, GSAP y fuentes Manrope/Sora se cargan desde CDN en las vistas.
 
-```text
-SCO/
-├── app/
-│   ├── logica_odontologo.php
-│   └── logica_paciente.php
-├── assests/
-├── config/
-│   └── database.php
-├── database/
-│   └── citas_odontologicas
-├── index.php
-├── README.md
-└── view/
-    ├── odontologo/
-    │   ├── editar_odontologo.php
-    │   ├── form_odontologo.php
-    │   └── lista_odontologos.php
-    └── paciente/
-        ├── editar_paciente.php
-        ├── form_paciente.php
-        └── lista_pacientes.php
-```
+No hay manifiesto de Composer o npm en el repositorio. Las versiones mínimas de PHP y PostgreSQL no están declaradas como configuración del proyecto.
 
-**Nota:** el árbol representa los directorios y archivos identificados en la estructura actual. La carpeta `assests/` se conserva con su nombre original. El elemento `database/citas_odontologicas` aparece sin extensión en el listado; verifica su tipo de archivo antes de determinar cómo importarlo.
-
-### `app/` — Lógica del sistema
-
-Contiene los archivos responsables de procesar las operaciones relacionadas con las entidades principales del sistema.
-
-- **`logica_paciente.php`:** centraliza las operaciones y validaciones relacionadas con los pacientes, como registrar, consultar, actualizar y eliminar información, según las funciones implementadas.
-- **`logica_odontologo.php`:** centraliza las operaciones relacionadas con los odontólogos, incluyendo el procesamiento de datos y las operaciones de mantenimiento de sus registros.
-
-Separar esta lógica de las vistas evita duplicar consultas y facilita el mantenimiento del código.
-
-### `assests/` — Recursos del proyecto
-
-Directorio destinado a los recursos complementarios de la interfaz, como hojas de estilos, imágenes, iconos o archivos JavaScript, según los elementos que contenga actualmente.
-
-Se conserva el nombre `assests/` para coincidir con la estructura real del repositorio.
-
-### `config/` — Configuración
-
-Contiene los parámetros de configuración necesarios para conectar la aplicación con PostgreSQL.
-
-- **`database.php`:** establece la conexión mediante PDO. Los archivos que necesitan consultar o modificar la base de datos pueden reutilizar esta conexión.
-
-#### Configuración de la base de datos
-
-Cada colaborador debe adaptar la configuración a su propio entorno local antes de ejecutar el proyecto.
-
-En `config/database.php`, revisa los siguientes parámetros:
-
-| Parámetro | Descripción |
-|---|---|
-| `host` | Dirección del servidor PostgreSQL. Si está instalado en el mismo equipo, normalmente puede utilizarse `127.0.0.1`. |
-| `dbname` | Nombre exacto de la base de datos creada para el proyecto. |
-| `user` | Usuario de PostgreSQL con los permisos necesarios. |
-| `password` | Contraseña correspondiente al usuario configurado. |
-
-Los valores incluidos por el autor corresponden a su entorno de desarrollo y pueden no funcionar en otros equipos.
-
-**Importante:** no compartas contraseñas personales ni credenciales reales en el repositorio. Si utilizas variables de entorno, conserva sus valores privados fuera del control de versiones.
-
-### `database/` — Archivos de base de datos
-
-Contiene los recursos relacionados con la base de datos del proyecto.
-
-- **`citas_odontologicas`:** elemento identificado dentro de esta carpeta. Antes de importarlo, comprueba si es un script SQL, un respaldo u otro tipo de archivo, y utiliza el procedimiento correspondiente.
-
-La base de datos debe disponer de las tablas y relaciones que necesita la aplicación antes de utilizar sus funcionalidades.
-
-### `view/` — Interfaces de usuario
-
-Contiene las páginas PHP que permiten al usuario interactuar con el sistema. Está organizada por entidad: pacientes y odontólogos.
-
-#### `view/paciente/`
-
-- **`form_paciente.php`:** presenta el formulario de registro de pacientes y envía los datos para su procesamiento.
-- **`lista_pacientes.php`:** muestra los pacientes registrados y sus datos disponibles, junto con las opciones de interacción implementadas.
-- **`editar_paciente.php`:** permite cargar y modificar la información de un paciente existente.
-
-#### `view/odontologo/`
-
-- **`form_odontologo.php`:** presenta el formulario para registrar odontólogos.
-- **`lista_odontologos.php`:** muestra los odontólogos registrados y las opciones disponibles para interactuar con sus registros.
-- **`editar_odontologo.php`:** permite cargar y modificar la información de un odontólogo existente.
-
-Las vistas se encargan principalmente de la presentación y la interacción. Las operaciones de negocio y las consultas correspondientes deben mantenerse en los archivos de lógica de `app/`.
-
-### `index.php` — Punto de entrada
-
-Es el archivo ubicado en la raíz del proyecto. Puede funcionar como punto de entrada de la aplicación y dirigir al usuario hacia las secciones correspondientes, según su implementación actual.
-
-### `README.md` — Documentación
-
-Este archivo explica el propósito del proyecto, sus tecnologías, la organización de los directorios y los pasos necesarios para preparar el entorno de desarrollo.
-
-## Requisitos previos
-
-Antes de ejecutar SCO, necesitas:
-
-- XAMPP con Apache y PHP 8.2, o una versión compatible.
-- PostgreSQL 17, o una versión compatible con el esquema del proyecto.
-- La extensión `pdo_pgsql` habilitada en PHP.
-- Git para clonar el repositorio.
-- El archivo de base de datos o script SQL necesario para crear las tablas y relaciones.
-
-## Instalación y configuración
-
-### 1. Clonar el repositorio
-
-Clona el repositorio privado de GitHub utilizando su URL real:
-
-```bash
-git clone URL_DEL_REPOSITORIO
-```
-
-Debes tener acceso autorizado al repositorio para completar la clonación.
-
-### 2. Ubicar el proyecto
-
-En XAMPP para Linux, coloca la carpeta del proyecto dentro de:
+## Estructura
 
 ```text
-/opt/lampp/htdocs/SCO
+DENTIX/
+├── app/                 # Procesamiento de citas, pacientes, odontólogos,
+│                        # recepción, servicios y guardas de sesión
+├── assests/             # CSS, JavaScript e imágenes (nombre original del directorio)
+├── config/              # Conexión PDO a PostgreSQL (lee las credenciales de `.env`)
+├── database/            # Esquema y scripts de preparación/migración SQL
+├── error/               # Notas y material de diagnóstico
+├── odd/tasks/           # Tareas y documentación de trabajo
+├── view/                # Vistas agrupadas por módulo
+│   ├── cita/
+│   ├── odontologo/
+│   ├── paciente/
+│   ├── recepcionista/
+│   └── servicio/
+├── index.php            # Página de inicio y accesos a módulos
+└── README.md
 ```
 
-Si clonaste el repositorio directamente en esa ubicación, no necesitas moverlo nuevamente.
+Archivos de base de datos principales:
 
-### 3. Iniciar PostgreSQL
+- `database/sco_patch.sql`: script **recomendado en todos los casos**. Prepara una base vacía (esquema completo + datos de prueba) y también actualiza una base existente de versiones anteriores (agrega el `cargo` de odontólogo y el líder de pruebas) sin eliminar tablas ni datos. Es idempotente: puedes ejecutarlo tantas veces como quieras.
+- `database/sco.sql`: esquema completo para una instalación descartable. **Elimina objetos existentes** mediante `DROP ... CASCADE`; no lo ejecutes sobre una base con datos que quieras conservar.
 
-Si PostgreSQL está instalado como servicio del sistema en Linux, puedes iniciarlo con:
+## Preparar el entorno
 
-```bash
-sudo systemctl start postgresql
-```
+Se requiere PHP con las extensiones PDO y `pdo_pgsql`, PostgreSQL y un servidor web como Apache.
 
-En otros sistemas operativos, utiliza el procedimiento correspondiente a tu instalación.
+1. Coloca el proyecto en el directorio público de tu servidor. En LAMPP suele ser `/opt/lampp/htdocs/DENTIX`.
+2. Crea una base de datos PostgreSQL, por ejemplo `citas_odontologicas`.
+3. Configura el archivo `.env` en la raíz del proyecto con los datos de tu instalación:
 
-### 4. Crear la base de datos
+   ```ini
+   DB_HOST=127.0.0.1
+   DB_PORT=5432
+   DB_NAME=citas_odontologicas
+   DB_USER=tu_usuario
+   DB_PASSWORD=tu_contraseña
+   ```
 
-Crea la base de datos que utilizará la aplicación y prepara sus tablas y relaciones con el archivo o respaldo disponible en `database/`.
+   `config/database.php` lee estas claves y abre la conexión PDO. `DB_NAME` debe coincidir con la base que creaste en el paso 2. No publiques credenciales reales ni uses las credenciales de prueba en producción. `.env` está excluido en `.gitignore`; nunca lo subas al repositorio.
 
-El nombre de la base de datos debe coincidir con el valor configurado en `dbname` dentro de `config/database.php`.
+4. Prepara la base de datos. Por ejemplo, con `psql`:
 
-### 5. Configurar la conexión
+   ```bash
+   psql -U tu_usuario -d citas_odontologicas -f database/sco_patch.sql
+   ```
 
-Abre:
+   Si usas pgAdmin, selecciona la base creada y ejecuta el contenido de `database/sco_patch.sql`. Para una base que ya contiene datos, haz primero un respaldo y comprueba el esquema; el script no elimina tablas, pero no agrega automáticamente todas las columnas que puedan faltar en tablas preexistentes.
 
-```text
-config/database.php
-```
+5. Inicia Apache y PostgreSQL, y abre `http://localhost/DENTIX/`.
 
-Adapta los parámetros de conexión a tu instalación de PostgreSQL. Comprueba que el servidor esté activo, que el usuario tenga los permisos necesarios y que la base de datos exista.
+## Accesos de prueba
 
-### 6. Iniciar Apache
+El script `sco_patch.sql` incluye datos de demostración. En ese conjunto, la contraseña de prueba documentada es `test1234`:
 
-En XAMPP para Linux, ejecuta:
+| Rol | Correo | Comportamiento esperado |
+|---|---|---|
+| Recepción | `maria.recepcion@clinica.com` | Inicia sesión en el panel de recepción |
+| Odontólogo **líder** | `checho.cardenas@clinica.com` | Inicia sesión y gestiona el cuerpo de odontólogos |
+| Odontólogo asociado | `ana.torres@clinica.com` | Login **denegado**: el módulo clínico de asociados no existe aún |
+| Odontólogo asociado | `luis.mendoza@clinica.com` | Login **denegado** (mismo motivo) |
+| Odontólogo inactivo | `sofia.rios@clinica.com` | Login denegado: cuenta deshabilitada |
 
-```bash
-sudo /opt/lampp/lampp startapache
-```
+Estos accesos son únicamente para desarrollo local. Cámbialos o elimina los datos de prueba antes de desplegar el sistema.
 
-### 7. Abrir el proyecto
+## Rutas de acceso
 
-Abre el navegador y accede al punto de entrada:
+- Inicio: `http://localhost/DENTIX/`
+- Inicio de sesión de recepción: `http://localhost/DENTIX/view/recepcionista/login_recepcionista.php`
+- Inicio de sesión de odontólogo: `http://localhost/DENTIX/view/odontologo/login_odontologo.php`
+- Gestión de odontólogos (solo líder): `http://localhost/DENTIX/view/odontologo/lista_odontologos.php`
+- Portal de citas para pacientes: `http://localhost/DENTIX/view/paciente/portal_paciente.php`
+- Agenda de recepción: `http://localhost/DENTIX/view/cita/lista_citas.php`
 
-```text
-http://localhost/SCO/
-```
+La agenda administrativa y los módulos de gestión requieren autenticación. La página de registro de pacientes es pública.
 
-Si necesitas acceder directamente a una vista de pacientes, puedes utilizar:
+## Observaciones pendientes
 
-```text
-http://localhost/SCO/view/paciente/lista_pacientes.php
-```
+Hay diferencias entre el esquema SQL incluido y las columnas usadas por algunas vistas. Deben corregirse en el esquema y mediante una migración antes de considerar operativos esos flujos:
 
-La disponibilidad de cada ruta depende de la implementación actual del proyecto.
+- Las vistas de paciente, el registro y el portal de citas consultan o escriben `paciente.cedula`; las tablas `paciente` de `sco.sql` y `sco_patch.sql` no definen esa columna. El registro público y la búsqueda por cédula no funcionarán con una base creada únicamente desde esos scripts.
+- El listado de odontólogos consulta `odontologo.telefono`, pero la tabla del esquema no define esa columna y el formulario actual de registro de odontólogo tampoco solicita teléfono.
+- `logica_paciente.php` usa el esquema de paciente con `telefono`, `email`, `fecha_nac` y `alergias`, distinto del formulario público, que usa cédula y correo. Conviene unificar ambos contratos antes de ampliar ese módulo.
+- No existe una pantalla ni una acción para **transferir el cargo de líder**; por ahora el cargo se cambia directamente en la base de datos (recuerda que el índice único exige que solo un líder esté activo a la vez).
+
+La base incluye `detalle_cita` y una vista de historial, pero el árbol actual no contiene un módulo de interfaz clínica para registrar notas o procedimientos.
 
 ## Colaboración
 
-SCO se mantiene mediante Git y GitHub. Los colaboradores autorizados pueden clonar el repositorio, configurar su propio entorno y proponer cambios.
+Antes de probar cambios, verifica la configuración local de PostgreSQL y PHP, usa una copia de la base de datos y evita subir `.env` con credenciales. No ejecutes `sco.sql` en una base con información que quieras conservar.
 
-Antes de trabajar, cada colaborador debe:
-
-1. Clonar el repositorio.
-2. Preparar PostgreSQL y la base de datos del proyecto.
-3. Adaptar la configuración de conexión a su equipo.
-4. Verificar que Apache y PHP funcionen correctamente.
-5. Probar las funcionalidades antes de enviar cambios.
-
-## Estado del proyecto
-
-El desarrollo se centra en las funcionalidades CRUD de pacientes y odontólogos: crear, consultar, actualizar y eliminar registros.
-
-La disponibilidad de cada operación debe verificarse en la implementación actual de sus archivos de lógica y vistas.
+Desarrollado para el programa Análisis y Desarrollo de Software (ADSO), SENA.

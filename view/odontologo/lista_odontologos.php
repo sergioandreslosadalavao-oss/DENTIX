@@ -1,126 +1,210 @@
-
 <?php
-
+// view/odontologo/lista_odontologos.php - Listado de Odontólogos con Teléfono, Email y Estado
+require_once "../../config/database.php";
+require_once "../../app/sesion.php";
 session_start();
 
-require_once __DIR__ . "/../../config/database.php";
-
+// Módulo administrativo: autenticado (recepción o líder) puede consultarlo
+sesion_requiere_autenticado("../recepcionista/login_recepcionista.php");
+$error = "";
 try {
-    $sql = "SELECT id, nombre, especialidad, consultorio, slug_publico
-            FROM odontologo
-            ORDER BY id ASC";
-
-    $consulta = $conexion->query($sql);
-    $odontologos = $consulta->fetchAll(PDO::FETCH_ASSOC);
-
+    $odontologos = $conexion->query(
+        "SELECT o.*,
+                EXISTS (
+                    SELECT 1
+                    FROM cita c
+                    WHERE c.odontologo_id = o.id
+                      AND c.estado IN ('pendiente', 'confirmada')
+                ) AS en_cita
+         FROM odontologo o
+         ORDER BY o.id DESC"
+    )->fetchAll();
 } catch (PDOException $e) {
-    error_log("Error al listar odontólogos: " . $e->getMessage());
-
+    error_log("Error al cargar odontólogos: " . $e->getMessage());
     $odontologos = [];
-    $_SESSION["mensaje"] = "No se pudo cargar el listado de odontólogos.";
-    $_SESSION["tipo_mensaje"] = "error";
+    $error = "No se pudo cargar el listado de odontólogos.";
 }
-
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Odontólogos | SCO</title>
+    <title>Odontólogos - SCO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="../../assests/css/admin.css">
+    <link rel="stylesheet" href="../../assests/css/index.css">
 </head>
-<body>
+<body class="admin-body" data-accent="odontologos">
+    <div class="page-progress"><span class="page-progress__bar"></span></div>
+    <div class="app-shell">
+        
+        <!-- BARRA LATERAL IDÉNTICA -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar__top">
+                <a href="../../index.php" class="brand">
+                    <div class="brand__mark"><i class="fa-solid fa-tooth"></i></div>
+                    <div class="brand__text">DENTIX<small>Panel Admin</small></div>
+                </a>
+                <button class="sidebar__close" id="sidebar-close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <nav class="sidebar__nav">
+                <span class="sidebar__label">Navegación</span>
+                <a href="../../index.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-house"></i></span>Inicio</a>
+                <a href="../paciente/lista_pacientes.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-hospital-user"></i></span>Pacientes</a>
+                <a href="lista_odontologos.php" class="side-link is-active"><span class="side-link__icon"><i class="fa-solid fa-user-doctor"></i></span>Odontólogos</a>
+                <a href="../servicio/lista_servicios.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-notes-medical"></i></span>Servicios</a>
+                <a href="../cita/lista_citas.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
+                <?php if (isset($_SESSION['odontologo_id'])): ?>
+                    <a href="cerrar_sesion_odontologo.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-right-from-bracket"></i></span>Cerrar Sesión</a>
+                <?php elseif (isset($_SESSION['recepcionista_id'])): ?>
+                    <a href="../recepcionista/cerrar_sesion.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-right-from-bracket"></i></span>Cerrar Sesión</a>
+                <?php endif; ?>
+            </nav>
+        </aside>
 
-    <h1>Odontólogos registrados</h1>
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="app-main">
+            <header class="topbar">
+                <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
+                <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Odontólogos</strong></div>
+            </header>
 
-    <?php if (isset($_SESSION["mensaje"])): ?>
-        <p>
-            <?= htmlspecialchars($_SESSION["mensaje"], ENT_QUOTES, "UTF-8") ?>
-        </p>
+            <div class="page">
+                <?php
+                // FLASH MESSAGE: mensaje de una sola vista que deja la lógica
+                // (éxito/error de registrar, deshabilitar, RN-08, etc.)
+                $flash = $_SESSION['mensaje'] ?? '';
+                $flashTipo = $_SESSION['tipo_mensaje'] ?? 'exito';
+                unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
+                ?>
+                <?php if ($flash !== ''): ?>
+                    <div class="alert alert-<?php echo $flashTipo === 'exito' ? 'success' : 'danger'; ?> py-2 small mb-3 border-0 shadow-sm" role="alert">
+                        <?php echo htmlspecialchars($flash, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php endif; ?>
 
-        <?php
-        unset($_SESSION["mensaje"], $_SESSION["tipo_mensaje"]);
-        ?>
-    <?php endif; ?>
+                <?php if ($error !== ""): ?>
+                    <div class="alert alert-danger py-2 small mb-3 border-0 shadow-sm" role="alert">
+                        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php endif; ?>
 
-    <p>
-        <a href="form_odontologo.php">Registrar odontólogo</a>
-    </p>
+                <div class="panel">
+                    <div class="panel__head">
+                        <div>
+                            <h3 class="panel__title"><i class="fa-solid fa-user-doctor"></i> Cuerpo Médico</h3>
+                            <p class="panel__subtitle">Especialistas activos, contacto y disponibilidad en tiempo real[cite: 16].</p>
+                        </div>
+                        <div class="panel__tools">
+                            <a href="form_odontologo.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-user-plus"></i> Nuevo Odontólogo</a>
+                        </div>
+                    </div>
 
-    <?php if (count($odontologos) > 0): ?>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nombre</th>
+                                    <th>Especialidad</th>
+                                    <th>Teléfono</th>
+                                    <th>Correo</th>
+                                    <th class="text-center">Estado (Activo / En Cita)</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (count($odontologos) > 0): ?>
+                                    <?php foreach ($odontologos as $i => $o): ?>
+                                        <tr>
+                                            <td data-label="#"><span class="row-id"><?php echo $i + 1; ?></span></td>
+                                            <td data-label="Nombre">
+                                                <strong><?php echo htmlspecialchars($o['nombre']); ?></strong>
+                                                <?php if (($o['cargo'] ?? '') === 'lider'): ?>
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-pill fw-bold ms-2" style="font-size: 0.7rem;">
+                                                        <i class="fa-solid fa-crown me-1"></i> Líder
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td data-label="Especialidad"><span class="chip chip--accent"><?php echo htmlspecialchars($o['especialidad']); ?></span></td>
+                                            
+                                            <!-- TELÉFONO -->
+                                            <td data-label="Teléfono">
+                                                <?php echo !empty($o['telefono']) ? htmlspecialchars($o['telefono']) : '<span class="text-muted small">No registrado</span>'; ?>
+                                            </td>
+                                            
+                                            <!-- CORREO (Apunta a la columna 'email' de tu BD) -->
+                                            <td data-label="Correo" class="text-muted">
+                                                <?php echo !empty($o['email']) ? htmlspecialchars($o['email']) : '<span class="small">No registrado</span>'; ?>
+                                            </td>
+                                            
+                                            <!-- ESTADO / DISPONIBILIDAD -->
+                                            <td data-label="Estado" class="text-center">
+                                                <?php 
+                                                    $esta_activo = in_array($o['activo'], [true, 1, '1', 't', 'true'], true);
+                                                    $en_cita = in_array($o['en_cita'], [true, 1, '1', 't', 'true'], true);
 
-        <table border="1" cellpadding="8">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Especialidad</th>
-                    <th>Consultorio</th>
-                    <th>Slug público</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
+                                                    if (!$esta_activo):
+                                                ?>
+                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                        <i class="fa-solid fa-circle-minus me-1"></i> Inactivo
+                                                    </span>
+                                                <?php elseif ($en_cita): ?>
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                        <i class="fa-solid fa-circle-dot me-1"></i> Ocupado / En Cita
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                        <i class="fa-solid fa-circle-check me-1"></i> Disponible
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
 
-            <tbody>
-                <?php foreach ($odontologos as $odontologo): ?>
-                    <tr>
-                        <td>
-                            <?= (int) $odontologo["id"] ?>
-                        </td>
+                                            <td data-label="Acciones" class="text-center">
+                                                <a href="editar_odontologo.php?id=<?php echo $o['id']; ?>" class="action action--edit"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
 
-                        <td>
-                            <?= htmlspecialchars($odontologo["nombre"], ENT_QUOTES, "UTF-8") ?>
-                        </td>
+                                                <?php
+                                                // Baja lógica (soft-delete) visible SOLO para el líder, y SOLO
+                                                // para asociados: el líder no aparece deshabilitable (RN-08).
+                                                $soyLider = (($_SESSION['odontologo_cargo'] ?? '') === 'lider');
+                                                $esFilaLider = (($o['cargo'] ?? '') === 'lider');
+                                                if ($soyLider && !$esFilaLider):
+                                                ?>
+                                                    <form action="../../app/logica_odontologo.php" method="POST" style="display:inline;"
+                                                          onsubmit="return confirm('¿Deshabilitar este odontólogo? Dejará de recibir nuevas asignaciones; su historial se conserva.');">
+                                                        <input type="hidden" name="accion" value="eliminar">
+                                                        <input type="hidden" name="id" value="<?php echo $o['id']; ?>">
+                                                        <button type="submit" class="action action--delete" style="background:none;border:none;cursor:pointer;color:#dc3545;padding:0 4px;">
+                                                            <i class="fa-solid fa-circle-minus"></i> Deshabilitar
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr><td colspan="7" class="text-center text-muted py-4">No hay odontólogos registrados.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-                        <td>
-                            <?= htmlspecialchars($odontologo["especialidad"], ENT_QUOTES, "UTF-8") ?>
-                        </td>
+            <footer class="app-footer">
+                <div>&copy; 2026 DENTIX</div>
+                <div>ADSO - SENA</div>
+            </footer>
+        </main>
+    </div>
 
-                        <td>
-                            <?= htmlspecialchars($odontologo["consultorio"] ?? "", ENT_QUOTES, "UTF-8") ?>
-                        </td>
-
-                        <td>
-                            <?= htmlspecialchars($odontologo["slug_publico"], ENT_QUOTES, "UTF-8") ?>
-                        </td>
-
-                        <td>
-                            <a href="../../app/logica_odontologo.php?accion=editar&id=<?= (int) $odontologo["id"] ?>">
-                                Editar
-                            </a>
-
-                            <form
-                                action="../../app/logica_odontologo.php"
-                                method="POST"
-                                style="display:inline"
-                                onsubmit="return confirm('¿Seguro que deseas eliminar este odontólogo?');"
-                            >
-                                <input type="hidden" name="accion" value="eliminar">
-
-                                <input
-                                    type="hidden"
-                                    name="id"
-                                    value="<?= (int) $odontologo["id"] ?>"
-                                >
-
-                                <button type="submit">Eliminar</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-    <?php else: ?>
-
-        <p>No hay odontólogos registrados.</p>
-
-    <?php endif; ?>
-
-    <p>
-        <a href="../../index.php">Volver al inicio</a>
-    </p>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="../../assests/js/admin-animations.js"></script>
 </body>
 </html>

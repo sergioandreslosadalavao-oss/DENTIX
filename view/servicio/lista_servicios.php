@@ -1,146 +1,134 @@
 <?php
-
+// view/servicio/lista_servicios.php - Listado de Servicios actualizado con Descripción, Duración y Costo
+require_once "../../config/database.php";
+require_once "../../app/sesion.php";
 session_start();
 
-require_once __DIR__ . "/../../config/database.php";
-
-// Mensajes de la operación anterior
-$mensaje = $_SESSION["mensaje"] ?? null;
-$tipo_mensaje = $_SESSION["tipo_mensaje"] ?? "exito";
-
-unset($_SESSION["mensaje"], $_SESSION["tipo_mensaje"]);
-
-// Búsqueda opcional por nombre
-$busqueda = trim($_GET["nombre"] ?? "");
-
+// Módulo administrativo: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 try {
-    if ($busqueda !== "") {
-        $consulta = $conexion->prepare(
-            "SELECT id, nombre, duracion_min, precio
-             FROM servicio
-             WHERE nombre ILIKE :nombre
-             ORDER BY id ASC"
-        );
-        $consulta->execute([":nombre" => "%" . $busqueda . "%"]);
-    } else {
-        $consulta = $conexion->query(
-            "SELECT id, nombre, duracion_min, precio
-             FROM servicio
-             ORDER BY id ASC"
-        );
-    }
-
-    $servicios = $consulta->fetchAll(PDO::FETCH_ASSOC);
-
+    $servicios = $conexion->query("SELECT * FROM servicio ORDER BY id DESC")->fetchAll();
 } catch (PDOException $e) {
-    error_log("Error al listar servicios: " . $e->getMessage());
-
     $servicios = [];
-    $mensaje = "No se pudo cargar el listado de servicios.";
-    $tipo_mensaje = "error";
 }
-
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Servicios | SCO</title>
+    <title>Servicios - SCO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="../../assests/css/admin.css">
+    <link rel="stylesheet" href="../../assests/css/index.css">
 </head>
-<body>
+<body class="admin-body" data-accent="servicios">
+    <div class="page-progress"><span class="page-progress__bar"></span></div>
+    <div class="app-shell">
+        
+        <!-- BARRA LATERAL UNIFICADA -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar__top">
+                <a href="../../index.php" class="brand">
+                    <div class="brand__mark"><i class="fa-solid fa-tooth"></i></div>
+                    <div class="brand__text">DENTIX<small>Panel Admin</small></div>
+                </a>
+                <button class="sidebar__close" id="sidebar-close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <nav class="sidebar__nav">
+                <span class="sidebar__label">Navegación</span>
+                <a href="../../index.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-house"></i></span>Inicio</a>
+                <a href="../paciente/lista_pacientes.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-hospital-user"></i></span>Pacientes</a>
+                <a href="../odontologo/lista_odontologos.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-user-doctor"></i></span>Odontólogos</a>
+                <a href="lista_servicios.php" class="side-link is-active"><span class="side-link__icon"><i class="fa-solid fa-notes-medical"></i></span>Servicios</a>
+                <a href="../cita/lista_citas.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
+            </nav>
+        </aside>
 
-    <h1>Servicios registrados</h1>
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="app-main">
+            <header class="topbar">
+                <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
+                <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Servicios</strong></div>
+            </header>
 
-    <?php if ($mensaje !== null): ?>
-        <p style="color: <?= $tipo_mensaje === "error" ? "#b00020" : "#1b7f3b" ?>;">
-            <strong><?= htmlspecialchars($mensaje, ENT_QUOTES, "UTF-8") ?></strong>
-        </p>
-    <?php endif; ?>
+            <div class="page">
+                <div class="panel">
+                    <div class="panel__head">
+                        <div>
+                            <h3 class="panel__title"><i class="fa-solid fa-notes-medical"></i> Catálogo de Servicios</h3>
+                            <p class="panel__subtitle">Tratamientos odontológicos, descripciones clínicas, duración estimada y tarifas vigentes.</p>
+                        </div>
+                        <div class="panel__tools">
+                            <a href="form_servicio.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-plus"></i> Nuevo Servicio</a>
+                        </div>
+                    </div>
 
-    <p>
-        <a href="form_servicio.php">Registrar servicio</a>
-    </p>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nombre del Servicio</th>
+                                    <th>Descripción Clínica</th>
+                                    <th>Duración Promedio</th>
+                                    <th>Costo / Precio</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (count($servicios) > 0): ?>
+                                    <?php foreach ($servicios as $i => $s): ?>
+                                        <tr>
+                                            <td data-label="#"><span class="row-id"><?php echo $i + 1; ?></span></td>
+                                            
+                                            <!-- NOMBRE DEL SERVICIO -->
+                                            <td data-label="Nombre"><strong><?php echo htmlspecialchars($s['nombre']); ?></strong></td>
+                                            
+                                            <!-- DESCRIPCIÓN -->
+                                            <td data-label="Descripción" class="text-muted" style="max-width: 280px; font-size: 0.85rem;">
+                                                <?php echo htmlspecialchars($s['descripcion'] ?? 'Sin descripción detallada.'); ?>
+                                            </td>
+                                            
+                                            <!-- DURACIÓN PROMEDIO -->
+                                            <td data-label="Duración">
+                                                <span class="badge bg-light text-secondary border px-2 py-1">
+                                                    <i class="fa-solid fa-clock me-1 text-teal" style="color: #0d9488;"></i> <?php echo htmlspecialchars($s['duracion_min']); ?> min
+                                                </span>
+                                            </td>
+                                            
+                                            <!-- COSTO / PRECIO -->
+                                            <td data-label="Precio">
+                                                <span class="money">$ <?php echo number_format($s['precio'], 0, ',', '.'); ?></span>
+                                            </td>
+                                            
+                                            <!-- ACCIONES -->
+                                            <td data-label="Acciones" class="text-center">
+                                                <a href="editar_servicio.php?id=<?php echo $s['id']; ?>" class="action action--edit"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr><td colspan="6" class="text-center text-muted py-4">No hay servicios registrados.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-    <form action="lista_servicios.php" method="GET">
-        <label for="nombre">Buscar por nombre:</label>
-        <input
-            type="text"
-            id="nombre"
-            name="nombre"
-            value="<?= htmlspecialchars($busqueda, ENT_QUOTES, "UTF-8") ?>"
-        >
-        <button type="submit">Buscar</button>
-        <?php if ($busqueda !== ""): ?>
-            <a href="lista_servicios.php">Limpiar</a>
-        <?php endif; ?>
-    </form>
-
-    <br>
-
-    <?php if (count($servicios) > 0): ?>
-
-        <table border="1" cellpadding="8">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Duración (min)</th>
-                    <th>Precio</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <?php foreach ($servicios as $servicio): ?>
-                    <tr>
-                        <td><?= (int) $servicio["id"] ?></td>
-
-                        <td>
-                            <?= htmlspecialchars($servicio["nombre"], ENT_QUOTES, "UTF-8") ?>
-                        </td>
-
-                        <td><?= (int) $servicio["duracion_min"] ?> min</td>
-
-                        <td>
-                            $ <?= number_format((float) $servicio["precio"], 2, ",", ".") ?>
-                        </td>
-
-                        <td>
-                            <a href="editar_servicio.php?id=<?= (int) $servicio["id"] ?>">
-                                Editar
-                            </a>
-
-                            <form
-                                action="../../app/logica_servicio.php"
-                                method="POST"
-                                style="display:inline"
-                                onsubmit="return confirm('¿Seguro que deseas eliminar este servicio?');"
-                            >
-                                <input type="hidden" name="accion" value="eliminar">
-                                <input
-                                    type="hidden"
-                                    name="id"
-                                    value="<?= (int) $servicio["id"] ?>"
-                                >
-                                <button type="submit">Eliminar</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-    <?php else: ?>
-
-        <p>No hay servicios registrados.</p>
-
-    <?php endif; ?>
-
-    <p>
-        <a href="../../index.php">Volver al inicio</a>
-    </p>
-
+            <footer class="app-footer">
+                <div>&copy; 2026 DENTIX</div>
+                <div>ADSO - SENA</div>
+            </footer>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="../../assests/js/admin-animations.js"></script>
 </body>
 </html>

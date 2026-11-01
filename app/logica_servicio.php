@@ -3,6 +3,7 @@
 session_start();
 
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../app/sesion.php";
 
 $metodo = $_SERVER["REQUEST_METHOD"];
 
@@ -11,6 +12,9 @@ if ($metodo !== "POST") {
     header("Location: ../view/servicio/lista_servicios.php");
     exit;
 }
+
+// Módulo administrativo del catálogo: exige sesión de recepción activa
+sesion_requiere_recepcionista("../view/recepcionista/login_recepcionista.php");
 
 $accion = $_POST["accion"] ?? "registrar";
 

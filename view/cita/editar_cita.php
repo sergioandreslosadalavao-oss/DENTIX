@@ -1,5 +1,10 @@
 <?php
 require_once "../../config/database.php";
+require_once "../../app/sesion.php";
+session_start();
+
+// Agenda administrativa: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 
 // Obtener el ID de la cita a editar
 $id = $_GET['id'] ?? null;

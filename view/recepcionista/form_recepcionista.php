@@ -1,63 +1,108 @@
-
 <?php
+// form_recepcionista.php - Registro de recepcionista
+require_once "../../config/database.php";
+require_once "../../app/sesion.php";
+session_start();
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Bootstrap de cuentas de recepción: solo autenticadas crean cuentas nuevas.
+// La primera recepcionista nace del seed SQL; después se autentica y da de
+// alta a sus colegas desde aquí (mismo patrón que RN-07 para odontólogos).
+sesion_requiere_recepcionista("login_recepcionista.php");
 
-require_once(__DIR__ . '/../../app/logica_recepcionista.php');
-$logicaRec = new LogicaRecepcionista();
-$odontologosActivos = $logicaRec->obtenerOdontologosActivos();
+$error = $_SESSION['error'] ?? '';
+unset($_SESSION['error']);
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Asignar Cita - Recepción</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Recepción - DENTIX</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <!-- Hojas de estilos -->
+    <link rel="stylesheet" href="../../assests/css/admin.css">
+    <link rel="stylesheet" href="../../assests/css/index.css">
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4>Panel de Recepción: Asignar Nueva Cita</h4>
+<body class="bg-light" style="display: grid; place-items: center; min-height: 100vh; margin: 0;">
+
+    <div class="container" style="max-width: 440px;">
+        <div class="card border-0 shadow-lg rounded-4 p-4 p-md-5 bg-white">
+            
+            <!-- Encabezado -->
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-teal text-white rounded-circle mb-3" style="width: 56px; height: 56px; background-color: #0d9488;">
+                    <i class="fa-solid fa-user-plus fs-4"></i>
+                </div>
+                <h3 class="fw-bold text-dark mb-1">Registro Recepción</h3>
+                <p class="text-muted small">Crea una cuenta para administrar el panel de DENTIX</p>
             </div>
-            <div class="card-body">
-                <form action="../../app/procesar_cita_recepcion.php" method="POST">
-                    
-                    <div class="mb-3">
-                        <label for="id_paciente" class="form-label">ID o Documento del Paciente:</label>
-                        <input type="text" class="form-control" name="id_paciente" required placeholder="Ingrese ID del paciente">
-                    </div>
 
-                    <div class="mb-3">
-                        <label for="id_odontologo" class="form-label">Seleccionar Odontólogo (Solo Activos):</label>
-                        <select class="form-select" name="id_odontologo" required>
-                            <option value="">-- Seleccione un especialista ---</option>
-                            <?php foreach ($odontologosActivos as $odonto): ?>
-                                <option value="<?php echo $odonto['id_odontologo']; ?>">
-                                    Dr(a). <?php echo htmlspecialchars($odonto['nombre'] . ' ' . $odonto['apellido'] . ' (' . $odonto['especialidad'] . ')'); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+            <!-- Alerta de error -->
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger py-2 small mb-4 shadow-sm border-0 d-flex align-items-center">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
 
-                    <div class="mb-3">
-                        <label for="fecha_cita" class="form-label">Fecha de la Cita:</label>
-                        <input type="date" class="form-control" name="fecha_cita" required>
-                    </div>
+            <!-- Formulario de Registro -->
+            <form action="../../app/logica_recepcionista.php" method="POST">
+                <input type="hidden" name="accion" value="registro">
 
-                    <div class="mb-3">
-                        <label for="hora_cita" class="form-label">Hora de la Cita:</label>
-                        <input type="time" class="form-control" name="hora_cita" required>
+                <div class="mb-3">
+                    <label for="nombre" class="form-label small fw-semibold text-dark">Nombre Completo</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-user text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" id="nombre" name="nombre" placeholder="Ej. José Antonio" required>
                     </div>
+                </div>
 
-                    <button type="submit" class="btn btn-success">Guardar y Asignar Cita</button>
-                    <a href="../index.php" class="btn btn-secondary">Cancelar</a>
-                </form>
-            </div>
+                <div class="mb-3">
+                    <label for="telefono" class="form-label small fw-semibold text-dark">Teléfono</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-phone text-muted"></i></span>
+                        <input type="tel" class="form-control border-start-0" id="telefono" name="telefono" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label small fw-semibold text-dark">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-envelope text-muted"></i></span>
+                        <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="jose.antonio@gmail.com" autocomplete="username" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label small fw-semibold text-dark">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-lock text-muted"></i></span>
+                        <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="••••••••" autocomplete="new-password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn text-white w-100 py-2 fw-bold rounded-pill mb-4" style="background-color: #0d9488; border: none;">
+                    <i class="fa-solid fa-check me-2"></i> Crear Cuenta y Entrar
+                </button>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top small">
+                    <a href="login_recepcionista.php" class="text-primary fw-bold text-decoration-none">
+                        <i class="fa-solid fa-right-to-bracket me-1"></i> Ya tengo cuenta
+                    </a>
+                    <a href="../../index.php" class="text-muted text-decoration-none">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Ir al Inicio
+                    </a>
+                </div>
+            </form>
+
         </div>
     </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
