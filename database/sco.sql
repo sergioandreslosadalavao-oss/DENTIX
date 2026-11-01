@@ -1,7 +1,9 @@
 
 -- =====================================================================
--- SISTEMA DE CITAS ODONTOLÓGICAS (SCO) - VERSIÓN 2.1 (CON LOGIN/AUTENTICACIÓN)
+-- SISTEMA DE CITAS ODONTOLÓGICAS (SCO) - VERSIÓN 2.2 (CARGO ODONTÓLOGO)
 -- Base de datos para PostgreSQL / pgAdmin
+-- RN-07: Solo el odontólogo líder registra a los demás odontólogos.
+-- RN-08: El líder no puede deshabilitarse a sí mismo.
 -- =====================================================================
 
 -- 1. ELIMINACIÓN DE OBJETOS PREVIOS (SI EXISTEN)
@@ -14,6 +16,7 @@ DROP TABLE IF EXISTS odontologo CASCADE;
 DROP TABLE IF EXISTS recepcionista CASCADE;
 DROP TABLE IF EXISTS paciente CASCADE;
 DROP TYPE IF EXISTS estado_cita CASCADE;
+DROP TYPE IF EXISTS cargo_odontologo CASCADE;
 
 -- 2. TIPO ENUM (Estados de la cita)
 CREATE TYPE estado_cita AS ENUM (
@@ -22,6 +25,14 @@ CREATE TYPE estado_cita AS ENUM (
     'completada',
     'cancelada',
     'no_show'
+);
+
+-- TIPO ENUM (Cargo del odontólogo dentro de la clínica)
+-- lider: único responsable de registrar/gestionar odontólogos (RN-07)
+-- asociado: atiende citas asignadas por la recepcionista
+CREATE TYPE cargo_odontologo AS ENUM (
+    'lider',
+    'asociado'
 );
 
 -- =====================================================================
@@ -68,6 +79,7 @@ CREATE TABLE odontologo (
     email           VARCHAR(100) UNIQUE NOT NULL, -- Usuario para login
     password_hash   VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña
     activo          BOOLEAN      NOT NULL DEFAULT TRUE, -- Disponibilidad para asignación
+    cargo           cargo_odontologo NOT NULL DEFAULT 'asociado', -- RN-07: lider registra odontólogos
     ultimo_acceso   TIMESTAMP,
     
     CONSTRAINT pk_odontologo PRIMARY KEY (id),
@@ -172,6 +184,15 @@ CREATE TABLE detalle_cita (
 -- =====================================================================
 CREATE INDEX ix_recepcionista_email ON recepcionista (lower(email));
 CREATE INDEX ix_odontologo_email ON odontologo (lower(email));
+
+-- RN-07: máximo UN odontólogo líder activo en toda la clínica.
+-- Índice único parcial: solo bloquea repetir cargo='lider' mientras activo=TRUE,
+-- así el líder se puede desactivar temporalmente sin bloquear futuras altas.
+CREATE UNIQUE INDEX uq_odontologo_lider
+    ON odontologo (cargo)
+    WHERE cargo = 'lider'
+      AND activo = TRUE;
+
 CREATE INDEX ix_cita_fecha ON cita (fecha);
 CREATE INDEX ix_cita_paciente ON cita (paciente_id, fecha DESC);
 CREATE INDEX ix_cita_odontologo ON cita (odontologo_id, fecha);
@@ -236,12 +257,20 @@ INSERT INTO paciente (nombre, telefono, email, fecha_nac, alergias) VALUES
 
 -- Claves de prueba encriptadas con algoritmo Bcrypt ($2a$12$...)
 INSERT INTO recepcionista (nombre, telefono, email, password_hash) VALUES
- ('María López', '3009998877', 'maria.recepcion@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8');
+ ('María López', '3009998877', 'maria.recepcion@clinica.com', '$2y$12$gocsfZA5oarhdeHjlvNhjeDweMLJfySRL2h8wKeWIZuNaH2.M0DZu');
 
-INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, activo) VALUES
- ('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres', 'ana.torres@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
- ('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza', 'luis.mendoza@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
- ('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios', 'sofia.rios@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', FALSE);
+-- Datos de prueba con hash bcrypt REAL generado con:
+--   php -r 'echo password_hash("test1234", PASSWORD_BCRYPT, ["cost" => 12]);'
+-- Contraseña de prueba para TODOS los usuarios del seed: test1234
+-- El líder (Dr. Checho Cardenas) nace del seed: bootstrap documentado de RN-07.
+-- Resto del cuerpo clínico: cargo 'asociado' (Ana es odontóloga más de la instalación).
+INSERT INTO odontologo (nombre, especialidad, slug_publico, email, password_hash, activo, cargo) VALUES
+ ('Dr. Checho Cardenas', 'Odontologia general', 'dr-checho-cardenas', 'checho.cardenas@clinica.com', '$2y$12$gocsfZA5oarhdeHjlvNhjeDweMLJfySRL2h8wKeWIZuNaH2.M0DZu', TRUE, 'lider');
+
+INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, activo, cargo) VALUES
+ ('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres', 'ana.torres@clinica.com', '$2y$12$gocsfZA5oarhdeHjlvNhjeDweMLJfySRL2h8wKeWIZuNaH2.M0DZu', TRUE, 'asociado'),
+ ('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza', 'luis.mendoza@clinica.com', '$2y$12$gocsfZA5oarhdeHjlvNhjeDweMLJfySRL2h8wKeWIZuNaH2.M0DZu', TRUE, 'asociado'),
+ ('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios', 'sofia.rios@clinica.com', '$2y$12$gocsfZA5oarhdeHjlvNhjeDweMLJfySRL2h8wKeWIZuNaH2.M0DZu', FALSE, 'asociado');
 
 INSERT INTO servicio (nombre, duracion_min, precio) VALUES
  ('Consulta general', 30, 50000.00),

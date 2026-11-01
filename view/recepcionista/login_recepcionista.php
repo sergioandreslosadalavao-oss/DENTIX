@@ -64,8 +64,8 @@ unset($_SESSION['error']);
                 </button>
 
                 <div class="d-flex justify-content-between align-items-center pt-3 border-top small">
-                    <a href="form_recepcionista.php" class="text-primary fw-bold text-decoration-none">
-                        <i class="fa-solid fa-user-plus me-1"></i> Registrarse
+                    <a href="../odontologo/login_odontologo.php" class="text-muted text-decoration-none">
+                        <i class="fa-solid fa-user-doctor me-1"></i> Acceso Odontólogo
                     </a>
                     <a href="../../index.php" class="text-muted text-decoration-none">
                         <i class="fa-solid fa-arrow-left me-1"></i> Ir al Inicio

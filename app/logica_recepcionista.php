@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/sesion.php';
 session_start();
 
 $accion = $_POST['accion'] ?? '';
@@ -51,6 +52,14 @@ if ($accion === 'login') {
 }
 
 if ($accion === 'registro') {
+
+    // Bootstrap de cuentas: las cuentas de recepción se crean desde una
+    // sesión de recepción autenticada. La primera nace del seed SQL.
+    sesion_requiere_recepcionista(
+        '../view/recepcionista/login_recepcionista.php',
+        'Solo una recepcionista autenticada puede crear cuentas nuevas de recepción.'
+    );
+
     $nombre = trim($_POST['nombre'] ?? '');
     $telefono = trim($_POST['telefono'] ?? '');
     $email = strtolower(trim($_POST['email'] ?? ''));

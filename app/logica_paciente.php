@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 
 // Incluir la conexión global de la base de datos
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/sesion.php';
 
 class LogicaPaciente {
     private $conn;
@@ -38,6 +39,11 @@ class LogicaPaciente {
 
 // Procesar el formulario cuando se envíe por POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Gestión administrativa de pacientes: exige sesión de recepción activa.
+    // El alta pública del paciente vive en form_paciente.php / portal, no aquí.
+    sesion_requiere_recepcionista("../view/recepcionista/login_recepcionista.php");
+
     $nombre    = $_POST['nombre'] ?? '';
     $telefono  = $_POST['telefono'] ?? '';
     $email     = $_POST['email'] ?? '';

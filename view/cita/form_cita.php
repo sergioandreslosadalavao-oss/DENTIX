@@ -1,6 +1,11 @@
 <?php
 // form_cita.php - Registro de Citas con diseño administrativo unificado
 require_once "../../config/database.php";
+require_once "../../app/sesion.php";
+session_start();
+
+// Agenda administrativa: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 
 try {
     $pacientes = $conexion->query("SELECT id, nombre FROM paciente ORDER BY nombre")->fetchAll();

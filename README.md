@@ -1,47 +1,115 @@
+# DENTIX
 
+Sistema web para la gestión de pacientes, odontólogos, servicios y citas de un consultorio odontológico. El proyecto también aparece como SCO (Sistema de Citas Odontológicas) en algunos nombres y comentarios heredados.
 
-## 📋 Descripción General
-**DENTIX** (anteriormente SCO) es un sistema integral de gestión web orientado a consultorios odontológicos, desarrollado con **PHP** y **PostgreSQL** sobre un entorno local LAMPP. Su objetivo principal es optimizar los flujos de trabajo del rol de recepcionista y del cuerpo médico, facilitando la administración de expedientes, el control de citas en tiempo real, la asignación de especialistas y la gestión de tarifas y tratamientos.
+## Funcionalidades
 
----
+- **Pacientes:** formularios de registro, listado y edición, con datos de contacto y cédula en las vistas.
+- **Citas:** portal de solicitud para pacientes y panel de recepción para revisar solicitudes, asignar odontólogo y confirmar citas pendientes.
+- **Odontólogos:** listado con estado activo y disponibilidad, edición y gestión de odontólogos asociados por parte del odontólogo líder.
+- **Servicios:** creación, edición, listado y eliminación del catálogo con duración y precio.
+- **Acceso por rol:** inicio de sesión para recepción y odontólogo; las operaciones administrativas revalidan las cuentas activas y aplican permisos por rol.
+- **Interfaz:** página de inicio y paneles adaptables, con estilos propios y recursos visuales cargados localmente y desde CDN.
 
-## 🚀 Módulos Actualizados y Nuevas Características
+La implementación clínica para que los odontólogos asociados atiendan citas no está disponible todavía. Por ahora, el acceso de odontólogo está limitado al líder y a la gestión del cuerpo médico.
 
-### 1. Módulo de Autenticación y Redirección
-* **Ruta de Acceso Normalizada**: Se corrigieron las redirecciones tras el inicio de sesión para que el acceso de los usuarios dirija de forma directa y limpia al panel principal de administración.
+## Tecnologías
 
-### 2. Módulo de Pacientes (`lista_pacientes.php` y formularios)
-* **Expediente Clínico Completo**: Se sincronizaron las columnas de la base de datos para mostrar con precisión:
-  * **Documento (Cédula)** de cada paciente.
-  * **Correo electrónico** y **Teléfono de contacto**.
-  * **Fecha de Nacimiento**.
-* **Control de Alergias Inteligente**: Incorporación de etiquetas visuales dinámicas para identificar rápidamente restricciones o alergias médicas.
+- PHP con PDO y `pdo_pgsql`.
+- PostgreSQL.
+- Apache (el proyecto puede ejecutarse en XAMPP/LAMPP).
+- HTML, CSS y JavaScript; Bootstrap 5.3.2, Font Awesome, GSAP y fuentes Manrope/Sora se cargan desde CDN en las vistas.
 
-### 3. Módulo de Odontólogos (`lista_odontologos.php` y `form_odontologo.php`)
-* **Estado en Tiempo Real**: Indicador visual de disponibilidad para cada especialista (*"Disponible"* u *"Ocupado / En Cita"*).
-* **Gestión de Contacto y Credenciales**: El formulario solicita obligatoriamente el **Teléfono**, el **Correo electrónico** y la **Contraseña** cifrada por hash (Bcrypt).
+No hay manifiesto de Composer o npm en el repositorio. Las versiones mínimas de PHP y PostgreSQL no están declaradas como configuración del proyecto.
 
-### 4. Módulo de Servicios (`lista_servicios.php` y `form_servicio.php`)
-* **Catálogo Clínico Ampliado**: Estructuración para registrar:
-  * **Descripciones clínicas detalladas** de cada tratamiento.
-  * **Duración promedio estimada en minutos**.
-  * **Tarifas y costos vigentes** en pesos colombianos (COP).
-* **Nuevos Procedimientos**: Incorporación de *Blanqueamiento dental*, *Extracción dental* y *Endodoncia*.
+## Estructura
 
-### 5. Módulo de Citas y Asignación (`lista_citas.php`)
-* **Asignación Dinámica**: Interfaz refactorizada que permite asociar citas pendientes con los odontólogos activos del consultorio.
+```text
+DENTIX/
+├── app/                 # Procesamiento de citas, pacientes, odontólogos,
+│                        # recepción, servicios y guardas de sesión
+├── assests/             # CSS, JavaScript e imágenes (nombre original del directorio)
+├── config/              # Conexión PDO a PostgreSQL
+├── database/            # Esquema y scripts de preparación/migración SQL
+├── error/               # Notas y material de diagnóstico
+├── odd/tasks/           # Tareas y documentación de trabajo
+├── view/                # Vistas agrupadas por módulo
+│   ├── cita/
+│   ├── odontologo/
+│   ├── paciente/
+│   ├── recepcionista/
+│   └── servicio/
+├── index.php            # Página de inicio y accesos a módulos
+└── README.md
+```
 
-### 6. Estandarización Visual (UI/UX)
-* **Diseño Unificado**: Todos los módulos comparten la misma estructura de contenedores (`app-shell`, `panel`, `data-table`) y una barra lateral de navegación fija en tono esmeralda institucional.
+Archivos de base de datos principales:
 
----
+- `database/sco_patch.sql`: script recomendado para preparar una base vacía y sembrar datos de prueba; está diseñado para no eliminar tablas existentes.
+- `database/sco.sql`: esquema completo para una instalación descartable. **Elimina objetos existentes** mediante `DROP ... CASCADE`; no lo ejecutes sobre una base con datos que quieras conservar.
+- `database/sco_patch_v2_2_cargo.sql`: parche anterior dedicado al cargo de odontólogo. Para una instalación nueva, usa el script `sco_patch.sql`.
 
-## 🛠️ Tecnologías y Herramientas Utilizadas
-* **Backend**: PHP (PDO y programación estructurada).
-* **Base de Datos**: PostgreSQL.
-* **Frontend**: HTML5, CSS3, Bootstrap 5, Font Awesome, Google Fonts (*Manrope* y *Sora*), y GSAP.
-* **Control de Versiones**: Git & GitHub.
+## Preparar el entorno
 
----
-*Desarrollado para el programa Análisis y Desarrollo de Software (ADSO) — SENA.*
-EOF
+Se requiere PHP con las extensiones PDO y `pdo_pgsql`, PostgreSQL y un servidor web como Apache.
+
+1. Coloca el proyecto en el directorio público de tu servidor. En LAMPP suele ser `/opt/lampp/htdocs/DENTIX`.
+2. Crea una base de datos PostgreSQL, por ejemplo `citas_odontologicas`.
+3. Configura el archivo `.env` en la raíz del proyecto con los datos de tu instalación:
+
+   ```ini
+   DB_HOST=127.0.0.1
+   DB_PORT=5432
+   DB_NAME=citas_odontologicas
+   DB_USER=tu_usuario
+   DB_PASSWORD=tu_contraseña
+   ```
+
+   `config/database.php` lee estas claves y abre la conexión PDO. No publiques credenciales reales ni uses las credenciales de prueba en producción. Antes de hacer un commit, asegúrate de excluir `.env` en `.gitignore`; actualmente no está excluido.
+
+4. Prepara la base de datos. Por ejemplo, con `psql`:
+
+   ```bash
+   psql -U tu_usuario -d citas_odontologicas -f database/sco_patch.sql
+   ```
+
+   Si usas pgAdmin, selecciona la base creada y ejecuta el contenido de `database/sco_patch.sql`. Para una base que ya contiene datos, haz primero un respaldo y comprueba el esquema; el script no elimina tablas, pero no agrega automáticamente todas las columnas que puedan faltar en tablas preexistentes.
+
+5. Inicia Apache y PostgreSQL, y abre `http://localhost/DENTIX/`.
+
+## Accesos de prueba
+
+El script `sco_patch.sql` incluye datos de demostración. En ese conjunto, la contraseña de prueba documentada es `test1234`:
+
+| Rol | Correo |
+|---|---|
+| Recepción | `maria.recepcion@clinica.com` |
+| Odontólogo líder | `checho.cardenas@clinica.com` |
+
+Estos accesos son únicamente para desarrollo local. Cámbialos o elimina los datos de prueba antes de desplegar el sistema.
+
+## Rutas de acceso
+
+- Inicio: `http://localhost/DENTIX/`
+- Inicio de sesión de recepción: `http://localhost/DENTIX/view/recepcionista/login_recepcionista.php`
+- Inicio de sesión de odontólogo: `http://localhost/DENTIX/view/odontologo/login_odontologo.php`
+- Portal de citas para pacientes: `http://localhost/DENTIX/view/paciente/portal_paciente.php`
+- Agenda de recepción: `http://localhost/DENTIX/view/cita/lista_citas.php`
+
+La agenda administrativa y los módulos de gestión requieren autenticación. La página de registro de pacientes es pública.
+
+## Observaciones pendientes
+
+Hay diferencias entre el esquema SQL incluido y las columnas usadas por algunas vistas. Deben corregirse en el esquema y mediante una migración antes de considerar operativos esos flujos:
+
+- Las vistas de paciente, el registro y el portal de citas consultan o escriben `paciente.cedula`; las tablas `paciente` de `sco.sql` y `sco_patch.sql` no definen esa columna. El registro público y la búsqueda por cédula no funcionarán con una base creada únicamente desde esos scripts.
+- El listado de odontólogos consulta `odontologo.telefono`, pero la tabla del esquema no define esa columna y el formulario actual de registro de odontólogo tampoco solicita teléfono.
+- `logica_paciente.php` usa el esquema de paciente con `telefono`, `email`, `fecha_nac` y `alergias`, distinto del formulario público, que usa cédula y correo. Conviene unificar ambos contratos antes de ampliar ese módulo.
+
+La base incluye `detalle_cita` y una vista de historial, pero el árbol actual no contiene un módulo de interfaz clínica para registrar notas o procedimientos.
+
+## Colaboración
+
+Antes de probar cambios, verifica la configuración local de PostgreSQL y PHP, usa una copia de la base de datos y evita subir `.env` con credenciales. No ejecutes `sco.sql` en una base con información que quieras conservar.
+
+Desarrollado para el programa Análisis y Desarrollo de Software (ADSO), SENA.

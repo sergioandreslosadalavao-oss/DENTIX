@@ -1,6 +1,12 @@
 
 <?php
 
+// Guarda de acceso directo por URL: exige sesión de recepción activa
+require_once __DIR__ . "/../../config/database.php";
+require_once __DIR__ . "/../../app/sesion.php";
+session_start();
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
+
 // Esta vista recibe $paciente desde app/logica_paciente.php.
 function escapar($valor) {
     return htmlspecialchars(

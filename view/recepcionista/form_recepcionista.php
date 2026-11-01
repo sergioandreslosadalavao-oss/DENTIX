@@ -1,6 +1,13 @@
 <?php
 // form_recepcionista.php - Registro de recepcionista
+require_once "../../config/database.php";
+require_once "../../app/sesion.php";
 session_start();
+
+// Bootstrap de cuentas de recepción: solo autenticadas crean cuentas nuevas.
+// La primera recepcionista nace del seed SQL; después se autentica y da de
+// alta a sus colegas desde aquí (mismo patrón que RN-07 para odontólogos).
+sesion_requiere_recepcionista("login_recepcionista.php");
 
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['error']);

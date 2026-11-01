@@ -1,7 +1,11 @@
 <?php
 // view/cita/lista_citas.php - Módulo de Citas con la estructura exacta y nativa de Servicios
 require_once "../../config/database.php";
+require_once "../../app/sesion.php";
 session_start();
+
+// Agenda administrativa: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 
 $mensaje = "";
 $error = "";

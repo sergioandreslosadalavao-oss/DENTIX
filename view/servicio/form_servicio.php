@@ -1,7 +1,11 @@
 <?php
 // view/servicio/form_servicio.php - Formulario para registrar un nuevo servicio odontológico
 require_once "../../config/database.php";
+require_once "../../app/sesion.php";
 session_start();
+
+// Módulo administrativo: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 
 $error = "";
 $mensaje = "";

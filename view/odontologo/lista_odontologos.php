@@ -1,6 +1,11 @@
 <?php
 // view/odontologo/lista_odontologos.php - Listado de Odontólogos con Teléfono, Email y Estado
 require_once "../../config/database.php";
+require_once "../../app/sesion.php";
+session_start();
+
+// Módulo administrativo: autenticado (recepción o líder) puede consultarlo
+sesion_requiere_autenticado("../recepcionista/login_recepcionista.php");
 $error = "";
 try {
     $odontologos = $conexion->query(
@@ -54,6 +59,11 @@ try {
                 <a href="lista_odontologos.php" class="side-link is-active"><span class="side-link__icon"><i class="fa-solid fa-user-doctor"></i></span>Odontólogos</a>
                 <a href="../servicio/lista_servicios.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-notes-medical"></i></span>Servicios</a>
                 <a href="../cita/lista_citas.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
+                <?php if (isset($_SESSION['odontologo_id'])): ?>
+                    <a href="cerrar_sesion_odontologo.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-right-from-bracket"></i></span>Cerrar Sesión</a>
+                <?php elseif (isset($_SESSION['recepcionista_id'])): ?>
+                    <a href="../recepcionista/cerrar_sesion.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-right-from-bracket"></i></span>Cerrar Sesión</a>
+                <?php endif; ?>
             </nav>
         </aside>
 
@@ -65,6 +75,19 @@ try {
             </header>
 
             <div class="page">
+                <?php
+                // FLASH MESSAGE: mensaje de una sola vista que deja la lógica
+                // (éxito/error de registrar, deshabilitar, RN-08, etc.)
+                $flash = $_SESSION['mensaje'] ?? '';
+                $flashTipo = $_SESSION['tipo_mensaje'] ?? 'exito';
+                unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
+                ?>
+                <?php if ($flash !== ''): ?>
+                    <div class="alert alert-<?php echo $flashTipo === 'exito' ? 'success' : 'danger'; ?> py-2 small mb-3 border-0 shadow-sm" role="alert">
+                        <?php echo htmlspecialchars($flash, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php endif; ?>
+
                 <?php if ($error !== ""): ?>
                     <div class="alert alert-danger py-2 small mb-3 border-0 shadow-sm" role="alert">
                         <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
@@ -100,7 +123,14 @@ try {
                                     <?php foreach ($odontologos as $i => $o): ?>
                                         <tr>
                                             <td data-label="#"><span class="row-id"><?php echo $i + 1; ?></span></td>
-                                            <td data-label="Nombre"><strong><?php echo htmlspecialchars($o['nombre']); ?></strong></td>
+                                            <td data-label="Nombre">
+                                                <strong><?php echo htmlspecialchars($o['nombre']); ?></strong>
+                                                <?php if (($o['cargo'] ?? '') === 'lider'): ?>
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-pill fw-bold ms-2" style="font-size: 0.7rem;">
+                                                        <i class="fa-solid fa-crown me-1"></i> Líder
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td data-label="Especialidad"><span class="chip chip--accent"><?php echo htmlspecialchars($o['especialidad']); ?></span></td>
                                             
                                             <!-- TELÉFONO -->
@@ -137,6 +167,23 @@ try {
 
                                             <td data-label="Acciones" class="text-center">
                                                 <a href="editar_odontologo.php?id=<?php echo $o['id']; ?>" class="action action--edit"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
+
+                                                <?php
+                                                // Baja lógica (soft-delete) visible SOLO para el líder, y SOLO
+                                                // para asociados: el líder no aparece deshabilitable (RN-08).
+                                                $soyLider = (($_SESSION['odontologo_cargo'] ?? '') === 'lider');
+                                                $esFilaLider = (($o['cargo'] ?? '') === 'lider');
+                                                if ($soyLider && !$esFilaLider):
+                                                ?>
+                                                    <form action="../../app/logica_odontologo.php" method="POST" style="display:inline;"
+                                                          onsubmit="return confirm('¿Deshabilitar este odontólogo? Dejará de recibir nuevas asignaciones; su historial se conserva.');">
+                                                        <input type="hidden" name="accion" value="eliminar">
+                                                        <input type="hidden" name="id" value="<?php echo $o['id']; ?>">
+                                                        <button type="submit" class="action action--delete" style="background:none;border:none;cursor:pointer;color:#dc3545;padding:0 4px;">
+                                                            <i class="fa-solid fa-circle-minus"></i> Deshabilitar
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

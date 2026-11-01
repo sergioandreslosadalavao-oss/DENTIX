@@ -1,6 +1,11 @@
 <?php
 // view/paciente/lista_pacientes.php - Listado de Pacientes con Cédula, Correo, Fecha de Nacimiento y Alergias
 require_once "../../config/database.php";
+require_once "../../app/sesion.php";
+session_start();
+
+// Módulo administrativo: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 try {
     // Obtenemos los pacientes ordenados por ID de manera descendente
     $pacientes = $conexion->query("SELECT * FROM paciente ORDER BY id DESC")->fetchAll();

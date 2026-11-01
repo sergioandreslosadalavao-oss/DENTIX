@@ -1,6 +1,11 @@
 <?php
 // view/servicio/lista_servicios.php - Listado de Servicios actualizado con Descripción, Duración y Costo
 require_once "../../config/database.php";
+require_once "../../app/sesion.php";
+session_start();
+
+// Módulo administrativo: exige sesión de recepción activa
+sesion_requiere_recepcionista("../recepcionista/login_recepcionista.php");
 try {
     $servicios = $conexion->query("SELECT * FROM servicio ORDER BY id DESC")->fetchAll();
 } catch (PDOException $e) {
