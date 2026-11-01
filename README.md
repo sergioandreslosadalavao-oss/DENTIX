@@ -22,7 +22,7 @@ La implementación clínica para que los odontólogos asociados atiendan citas n
 
 No hay manifiesto de Composer o npm en el repositorio. Las versiones mínimas de PHP y PostgreSQL no están declaradas como configuración del proyecto.
 
-## Estructura
+## Estructura y funcionalidad
 
 ```text
 DENTIX/
@@ -39,11 +39,118 @@ DENTIX/
 │   ├── paciente/
 │   ├── recepcionista/
 │   └── servicio/
+├── .atl/                # Registro de skills de los asistentes de desarrollo (tooling)
+├── .env                 # Credenciales de la base de datos (no se commitea)
+├── .gitignore           # Excluye `.env` del repositorio
 ├── index.php            # Página de inicio y accesos a módulos
-└── README.md
+└── README.md            # Esta documentación
 ```
 
-Archivos de base de datos principales:
+### Raíz del proyecto
+
+| Archivo | Funcionalidad |
+|---|---|
+| `index.php` | Página de inicio con accesos a los módulos (paciente, odontólogo, servicio, cita) y botones de acceso rápido. |
+| `README.md` | Esta documentación. |
+| `.env` | Credenciales de conexión (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`). Excluido de git: nunca se sube al repositorio. |
+| `.gitignore` | Excluye únicamente `.env`. |
+
+### `app/` — lógica de negocio
+
+| Archivo | Funcionalidad |
+|---|---|
+| `sesion.php` | Guardas de sesión. Revalida contra la base de datos, en cada acción protegida, que el recepcionista esté activo y que el odontólogo sea líder activo: la sesión envejecida no es fuente de verdad. |
+| `logica_paciente.php` | Alta de pacientes desde recepción (campos `telefono`, `email`, `fecha_nac`, `alergias`). |
+| `logica_odontologo.php` | Login de odontólogos con bcrypt y CRUD de odontólogos con guarda de líder (alta, edición y deshabilitación con baja lógica `activo = FALSE`). El login de asociados queda denegado hasta que exista el módulo clínico. |
+| `logica_cita.php` | Creación de citas; requiere sesión de recepción. |
+| `logica_recepcionista.php` | Login de recepción (exige `activo = TRUE`) y creación de cuentas de recepción con sesión iniciada. |
+| `logica_servicio.php` | CRUD del catálogo de servicios (registrar, actualizar, eliminar) con guarda de recepción. |
+
+### `config/`
+
+| Archivo | Funcionalidad |
+|---|---|
+| `database.php` | Lee las claves `DB_*` de `.env`, abre la conexión PDO con `pdo_pgsql` y termina el proceso si la conexión falla. |
+
+### `database/` — scripts SQL
+
+| Archivo | Funcionalidad |
+|---|---|
+| `sco.sql` | Esquema completo + datos de prueba para una instalación descartable. **Elimina objetos existentes** (`DROP ... CASCADE`). |
+| `sco_patch.sql` | **Script recomendado en todos los casos.** Prepara una base vacía o actualiza una existente sin borrar datos; es idempotente. |
+
+El detalle y las advertencias de ambos están en [Archivos de base de datos principales](#archivos-de-base-de-datos-principales).
+
+### `view/` — vistas por módulo
+
+Cada subcarpeta es un módulo. Las vistas usan Bootstrap 5.3, Font Awesome, GSAP y las fuentes Manrope/Sora, cargados desde CDN.
+
+#### `view/paciente/`
+
+| Archivo | Funcionalidad |
+|---|---|
+| `form_paciente.php` | Registro público de pacientes. |
+| `portal_paciente.php` | Portal público: valida la cédula para consultar y agendar. |
+| `agendar_cita.php` | Formulario público de solicitud de cita, identificado por cédula. |
+| `lista_pacientes.php` | Listado de pacientes (recepción). |
+| `editar_paciente.php` | Edición de datos del paciente (recepción). |
+
+#### `view/odontologo/`
+
+| Archivo | Funcionalidad |
+|---|---|
+| `login_odontologo.php` | Pantalla de inicio de sesión de odontólogos. |
+| `lista_odontologos.php` | Listado con estado, cargo y disponibilidad; alta, edición y deshabilitación solo para el líder (RN-07). |
+| `form_odontologo.php` | Alta de odontólogo (nombre, especialidad, consultorio, email, contraseña). |
+| `editar_odontologo.php` | Edición de odontólogo; la guarda de líder también aplica al acceder por URL directa. |
+| `cerrar_sesion_odontologo.php` | Destruye la sesión de odontólogo. |
+
+#### `view/recepcionista/`
+
+| Archivo | Funcionalidad |
+|---|---|
+| `login_recepcionista.php` | Pantalla de inicio de sesión de recepción. |
+| `form_recepcionista.php` | Creación de cuentas de recepción (requiere sesión iniciada). |
+| `lista_recepcionista.php` | Stub: solo redirige al login (pendiente de implementar). |
+| `editar_recepcionista.php` | Formulario de edición, prácticamente placeholder (pendiente). |
+| `cerrar_sesion.php` | Destruye la sesión de recepción. |
+
+#### `view/cita/`
+
+| Archivo | Funcionalidad |
+|---|---|
+| `lista_citas.php` | Agenda de recepción: revisa solicitudes, asigna odontólogo y confirma citas pendientes. |
+| `form_cita.php` | Formulario de nueva cita (recepción). |
+| `editar_cita.php` | Edición de una cita existente (recepción). |
+
+#### `view/servicio/`
+
+| Archivo | Funcionalidad |
+|---|---|
+| `lista_servicios.php` | Catálogo de servicios con duración y precio. |
+| `form_servicio.php` | Formulario de alta de servicio. |
+| `editar_servicio.php` | Edición de servicio (recepción). |
+
+### `assests/` — recursos front-end
+
+| Archivo | Funcionalidad |
+|---|---|
+| `css/index.css` | Estilos de la página de inicio. |
+| `css/admin.css` | Estilos de los paneles administrativos. |
+| `js/index-animations.js` | Animaciones GSAP de la página de inicio. |
+| `js/admin-animations.js` | Animaciones GSAP de los paneles. |
+| `js/animaciones.js` | Animaciones GSAP de las tarjetas de módulo (versión anterior). |
+| `img/proyecto-placeholder.svg` | Imagen placeholder del hero. |
+
+### Otras carpetas
+
+| Carpeta o archivo | Funcionalidad |
+|---|---|
+| `error/test.md` | Checklist de casos de fallo a probar (QA). |
+| `odd/tasks/` | Documentos de tareas y especificaciones del desarrollo. |
+| `.atl/` | Registro de skills de los asistentes de desarrollo (tooling interno). |
+
+### Archivos de base de datos principales
 
 - `database/sco_patch.sql`: script **recomendado en todos los casos**. Prepara una base vacía (esquema completo + datos de prueba) y también actualiza una base existente de versiones anteriores (agrega el `cargo` de odontólogo y el líder de pruebas) sin eliminar tablas ni datos. Es idempotente: puedes ejecutarlo tantas veces como quieras.
 - `database/sco.sql`: esquema completo para una instalación descartable. **Elimina objetos existentes** mediante `DROP ... CASCADE`; no lo ejecutes sobre una base con datos que quieras conservar.
@@ -112,8 +219,13 @@ Hay diferencias entre el esquema SQL incluido y las columnas usadas por algunas 
 
 La base incluye `detalle_cita` y una vista de historial, pero el árbol actual no contiene un módulo de interfaz clínica para registrar notas o procedimientos.
 
+## Cosas a tener en cuenta (administración de la base de datos)
+
+- **Dónde administrarla:** además de `psql`, puedes ejecutar ambos scripts desde el **Query Tool de pgAdmin** (selecciona la base → Query Tool → abre el archivo → Execute). Es la vía gráfica si no usas la terminal.
+- **Reglas que rechazan escrituras** (fallan en la base de datos, no en PHP): solo un odontólogo líder activo a la vez; sin horarios repetidos para el mismo odontólogo/fecha/hora; horas de cita válidas de 08:00 a 19:30 en punto o y media; emails y nombres de servicio únicos.
+- **No se borra nada por SQL:** las foráneas de `cita` y `detalle_cita` usan `ON DELETE RESTRICT`; no puedes eliminar un odontólogo o paciente que tenga citas. Por eso la app deshabilita con `activo = FALSE` en vez de borrar filas.
+- **Una base vieja no se completa sola:** `sco_patch.sql` no agrega automáticamente todas las columnas que falten en tablas preexistentes (solo las que trae programadas, como `cargo`). Revisa el esquema antes de usarla y haz un respaldo (`pg_dump`) previo.
+
 ## Colaboración
 
 Antes de probar cambios, verifica la configuración local de PostgreSQL y PHP, usa una copia de la base de datos y evita subir `.env` con credenciales. No ejecutes `sco.sql` en una base con información que quieras conservar.
-
-Desarrollado para el programa Análisis y Desarrollo de Software (ADSO), SENA.
