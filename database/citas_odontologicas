@@ -1,7 +1,6 @@
-
 -- =====================================================================
--- SISTEMA DE CITAS ODONTOLÓGICAS (SCO) - VERSIÓN 2.1 (CON LOGIN/AUTENTICACIÓN)
--- Base de datos para PostgreSQL / pgAdmin
+-- SISTEMA DE CITAS ODONTOLÓGICAS (DENTIX) - VERSIÓN 3.0 (alineada con SRS DENTIX v3.0)
+-- Base de datos completa para PostgreSQL / pgAdmin
 -- =====================================================================
 
 -- 1. ELIMINACIÓN DE OBJETOS PREVIOS (SI EXISTEN)
@@ -14,6 +13,10 @@ DROP TABLE IF EXISTS odontologo CASCADE;
 DROP TABLE IF EXISTS recepcionista CASCADE;
 DROP TABLE IF EXISTS paciente CASCADE;
 DROP TYPE IF EXISTS estado_cita CASCADE;
+DROP FUNCTION IF EXISTS fn_validar_espaciado_citas_paciente CASCADE;
+
+-- Extensión para generar hashes bcrypt de las contraseñas de prueba (crypt / gen_salt)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 2. TIPO ENUM (Estados de la cita)
 CREATE TYPE estado_cita AS ENUM (
@@ -28,16 +31,16 @@ CREATE TYPE estado_cita AS ENUM (
 -- 3. TABLAS MAESTRAS Y ENTIDADES CON AUTENTICACIÓN
 -- =====================================================================
 
--- ---------- Paciente (Entidad Pública via QR / Link) ----------
+-- ---------- Paciente ----------
 CREATE TABLE paciente (
-    id           INT GENERATED ALWAYS AS IDENTITY,
-    nombre       VARCHAR(100) NOT NULL,
-    telefono     VARCHAR(20)  NOT NULL,
-    email        VARCHAR(100),
-    cedula       VARCHAR(30) NOT NULL UNIQUE,
+    id            INT GENERATED ALWAYS AS IDENTITY,
+    nombre        VARCHAR(100) NOT NULL,
+    telefono      VARCHAR(20)  NOT NULL,
+    email         VARCHAR(100),
+    cedula        VARCHAR(30)  NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    fecha_nac    DATE,
-    alergias     TEXT,
+    fecha_nac     DATE,
+    alergias      TEXT,
     
     CONSTRAINT pk_paciente PRIMARY KEY (id),
     CONSTRAINT ck_paciente_nombre CHECK (length(trim(nombre)) > 0),
@@ -45,22 +48,22 @@ CREATE TABLE paciente (
     CONSTRAINT ck_paciente_fecha_nac CHECK (fecha_nac IS NULL OR fecha_nac <= CURRENT_DATE)
 );
 
--- ---------- Recepcionista (Ente Administrativo con Inicio de Sesión) ----------
+-- ---------- Recepcionista ----------
 CREATE TABLE recepcionista (
     id            INT GENERATED ALWAYS AS IDENTITY,
     nombre        VARCHAR(100) NOT NULL,
     telefono      VARCHAR(20)  NOT NULL,
     email         VARCHAR(100) UNIQUE NOT NULL, -- Usuario para login
-    password_hash VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña (bcrypt/argon2)
+    password_hash VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña (bcrypt)
     activo        BOOLEAN      NOT NULL DEFAULT TRUE,
-    ultimo_acceso TIMESTAMP,                    -- Auditoría de inicio de sesión
+    ultimo_acceso TIMESTAMP,
     
     CONSTRAINT pk_recepcionista PRIMARY KEY (id),
     CONSTRAINT ck_recepcionista_nombre CHECK (length(trim(nombre)) > 0),
     CONSTRAINT ck_recepcionista_email CHECK (email LIKE '%@%.%')
 );
 
--- ---------- Odontólogo (Profesional con Inicio de Sesión y Disponibilidad) ----------
+-- ---------- Odontólogo ----------
 CREATE TABLE odontologo (
     id              INT GENERATED ALWAYS AS IDENTITY,
     nombre          VARCHAR(100) NOT NULL,
@@ -69,7 +72,7 @@ CREATE TABLE odontologo (
     slug_publico    VARCHAR(60)  NOT NULL,
     email           VARCHAR(100) UNIQUE NOT NULL, -- Usuario para login
     password_hash   VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña
-    activo          BOOLEAN      NOT NULL DEFAULT TRUE, -- Disponibilidad para asignación
+    activo          BOOLEAN      NOT NULL DEFAULT TRUE,
     ultimo_acceso   TIMESTAMP,
     
     CONSTRAINT pk_odontologo PRIMARY KEY (id),
@@ -84,6 +87,7 @@ CREATE TABLE servicio (
     nombre          VARCHAR(80)   NOT NULL,
     duracion_min    INT           NOT NULL,
     precio          NUMERIC(10,2) NOT NULL DEFAULT 0,
+    descripcion     TEXT,
     
     CONSTRAINT pk_servicio PRIMARY KEY (id),
     CONSTRAINT uq_servicio_nombre UNIQUE (nombre),
@@ -97,7 +101,7 @@ CREATE TABLE servicio (
 CREATE TABLE cita (
     id                  INT GENERATED ALWAYS AS IDENTITY,
     paciente_id         INT          NOT NULL,
-    odontologo_id       INT,                   -- Asignado por Recepción al confirmar la cita
+    odontologo_id       INT,                   -- NULL cuando el paciente la solicita; asignado por Recepción al confirmar
     servicio_id         INT          NOT NULL,
     recepcionista_id    INT,                   -- Recepcionista autenticada que gestionó/asignó
     fecha               DATE         NOT NULL,
@@ -153,6 +157,8 @@ CREATE TABLE detalle_cita (
     detalle         TEXT,
     procedimiento   TEXT,
     nota_clinica    TEXT,
+    fecha_salida    DATE,
+    hora_salida     TIME,
     creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_detalle_cita PRIMARY KEY (id),
@@ -170,7 +176,62 @@ CREATE TABLE detalle_cita (
 );
 
 -- =====================================================================
--- 6. ÍNDICES STRATEGICOS DE RENDIMIENTO Y BÚSQUEDA
+-- 6. DISPARADORES Y REGLAS DE NEGOCIO (TRIGGERS)
+-- =====================================================================
+
+-- RN-07: Control de frecuencia de citas por paciente
+-- No permite repetir cita el mismo día y exige un margen mínimo de 4 días completos entre citas.
+CREATE OR REPLACE FUNCTION fn_validar_espaciado_citas_paciente()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_conflicto RECORD;
+BEGIN
+    IF NEW.estado = 'cancelada' THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT id, fecha, estado 
+    INTO v_conflicto
+    FROM cita
+    WHERE paciente_id = NEW.paciente_id
+      AND id <> COALESCE(NEW.id, 0)
+      AND estado IN ('pendiente', 'confirmada', 'completada')
+      AND ABS(fecha - NEW.fecha) < 5
+    LIMIT 1;
+
+    IF FOUND THEN
+        IF v_conflicto.fecha = NEW.fecha THEN
+            RAISE EXCEPTION 'El paciente ya cuenta con una cita registrada para el mismo día (%).', NEW.fecha;
+        ELSE
+            RAISE EXCEPTION 'Deben pasar al menos 4 días entre citas. El paciente ya tiene una cita el % (estado: %).', v_conflicto.fecha, v_conflicto.estado;
+        END IF;
+    END IF;
+
+    -- RN-08: Máximo 1 cita por odontólogo por día
+    IF NEW.odontologo_id IS NOT NULL AND NEW.estado IN ('confirmada', 'completada') THEN
+        IF EXISTS (
+            SELECT 1 
+            FROM cita 
+            WHERE odontologo_id = NEW.odontologo_id 
+              AND fecha = NEW.fecha 
+              AND id <> COALESCE(NEW.id, 0) 
+              AND estado IN ('confirmada', 'completada')
+        ) THEN
+            RAISE EXCEPTION 'El odontólogo ya tiene una cita asignada para el día %. Máximo 1 cita por odontólogo al día.', NEW.fecha;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validar_espaciado_citas
+BEFORE INSERT OR UPDATE OF paciente_id, odontologo_id, fecha, estado ON cita
+FOR EACH ROW
+EXECUTE FUNCTION fn_validar_espaciado_citas_paciente();
+
+-- =====================================================================
+-- 7. ÍNDICES ESTRATÉGICOS DE RENDIMIENTO Y BÚSQUEDA
 -- =====================================================================
 CREATE INDEX ix_recepcionista_email ON recepcionista (lower(email));
 CREATE INDEX ix_odontologo_email ON odontologo (lower(email));
@@ -179,9 +240,10 @@ CREATE INDEX ix_cita_paciente ON cita (paciente_id, fecha DESC);
 CREATE INDEX ix_cita_odontologo ON cita (odontologo_id, fecha);
 CREATE INDEX ix_paciente_nombre ON paciente (lower(nombre));
 CREATE INDEX ix_paciente_telefono ON paciente (telefono);
+CREATE INDEX ix_paciente_cedula ON paciente (cedula);
 
 -- =====================================================================
--- 7. VISTAS OPTIMIZADAS
+-- 8. VISTAS OPTIMIZADAS
 -- =====================================================================
 
 -- Vista Agenda del Día (Utilizada por Recepción para monitorear y asignar)
@@ -207,7 +269,7 @@ LEFT JOIN  odontologo     o   ON o.id = c.odontologo_id
 INNER JOIN servicio       s   ON s.id = c.servicio_id
 LEFT JOIN  recepcionista rec ON rec.id = c.recepcionista_id;
 
--- Vista Ficha del Paciente (Utilizada por el Odontólogo en consulta)
+-- Vista Ficha del Paciente (Historial clínico para el odontólogo)
 CREATE VIEW v_historial_paciente AS
 SELECT
     p.id            AS paciente_id,
@@ -221,7 +283,9 @@ SELECT
     s.nombre        AS servicio,
     d.detalle,
     d.procedimiento,
-    d.nota_clinica
+    d.nota_clinica,
+    d.fecha_salida,
+    d.hora_salida
 FROM paciente p
 INNER JOIN cita c        ON c.paciente_id = p.id
 LEFT JOIN odontologo o  ON o.id = c.odontologo_id
@@ -229,28 +293,43 @@ INNER JOIN servicio s    ON s.id = c.servicio_id
 LEFT JOIN detalle_cita d ON d.cita_id = c.id;
 
 -- =====================================================================
--- 8. DATOS DE PRUEBA (CON HASHES DE CLAVE SIMULADOS)
+-- 9. DATOS INICIALES Y DE PRUEBA
+-- Contraseña general para todos los usuarios de prueba: 12141214
+-- Los hashes se generan con pgcrypto: crypt('12141214', gen_salt('bf', 10)).
+-- PHP password_verify() acepta estos hashes bcrypt ($2a$).
 -- =====================================================================
 
-INSERT INTO paciente (nombre, telefono, email, fecha_nac, alergias) VALUES
- ('Laura Gomez', '3001112233', 'laura@mail.com', '1995-03-14', 'Penicilina'),
- ('Carlos Perez', '3104445566', 'carlos@mail.com', '1988-11-02', NULL);
+-- 5 Pacientes
+INSERT INTO paciente (nombre, telefono, email, cedula, password_hash, fecha_nac, alergias) VALUES
+ ('Laura Gomez', '3001112233', 'laura@mail.com', '1001112233', crypt('12141214', gen_salt('bf', 10)), '1995-03-14', 'Penicilina'),
+ ('Carlos Perez', '3104445566', 'carlos@mail.com', '1004445566', crypt('12141214', gen_salt('bf', 10)), '1988-11-02', NULL),
+ ('Maik Cardenas', '3167798282', 'cardenasmaik30@gmail.com', '1076907716', crypt('12141214', gen_salt('bf', 10)), '2000-01-01', NULL),
+ ('Andrea Morales', '3125556677', 'andrea.morales@mail.com', '1005556677', crypt('12141214', gen_salt('bf', 10)), '1998-07-20', 'Ninguna'),
+ ('Felipe Restrepo', '3157778899', 'felipe.restrepo@mail.com', '1007778899', crypt('12141214', gen_salt('bf', 10)), '1992-11-15', 'Ibuprofeno');
 
--- Claves de prueba encriptadas con algoritmo Bcrypt ($2a$12$...)
+-- Recepcionistas
 INSERT INTO recepcionista (nombre, telefono, email, password_hash) VALUES
- ('María López', '3009998877', 'maria.recepcion@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8');
+ ('Jose Antonio', '3238898007', 'jose.recepcion@clinica.com', crypt('12141214', gen_salt('bf', 10))),
+ ('María López', '3009998877', 'maria.recepcion@clinica.com', crypt('12141214', gen_salt('bf', 10))),
+ ('Sofia Ruiz', '3229998822', 'sofia.recepcion@clinica.com', crypt('12141214', gen_salt('bf', 10)));
 
+-- 5 Odontólogos
 INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, activo) VALUES
- ('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres', 'ana.torres@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
- ('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza', 'luis.mendoza@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
- ('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios', 'sofia.rios@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', FALSE);
+ ('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres', 'ana.torres@clinica.com', crypt('12141214', gen_salt('bf', 10)), TRUE),
+ ('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza', 'luis.mendoza@clinica.com', crypt('12141214', gen_salt('bf', 10)), TRUE),
+ ('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios', 'sofia.rios@clinica.com', crypt('12141214', gen_salt('bf', 10)), TRUE),
+ ('Dr. Carlos Vega', 'Periodoncia e Implantología', 'Consultorio 4', 'dr-carlos-vega', 'carlos.vega@clinica.com', crypt('12141214', gen_salt('bf', 10)), TRUE),
+ ('Dra. Valentina Ortiz', 'Odontopediatría', 'Consultorio 5', 'dra-valentina-ortiz', 'valentina.ortiz@clinica.com', crypt('12141214', gen_salt('bf', 10)), TRUE);
 
-INSERT INTO servicio (nombre, duracion_min, precio) VALUES
- ('Consulta general', 30, 50000.00),
- ('Limpieza dental', 30, 80000.00),
- ('Calza (resina)', 60, 150000.00);
+-- 5 Servicios
+INSERT INTO servicio (nombre, duracion_min, precio, descripcion) VALUES
+ ('Consulta general', 30, 50000.00, 'Evaluación diagnóstica completa del estado de salud oral y plan de tratamiento personalizado.'),
+ ('Limpieza dental', 30, 80000.00, 'Profilaxis dental profunda para eliminar placa bacteriana y sarro, previniendo enfermedades periodontales.'),
+ ('Calza (resina)', 60, 150000.00, 'Restauración estética con resina de alta resistencia para devolver la función y forma natural al diente.'),
+ ('Blanqueamiento dental', 45, 250000.00, 'Tratamiento estético avanzado con luz LED y geles especializados para aclarar el tono dental de forma segura y eficaz.'),
+ ('Ortodoncia correctiva', 60, 350000.00, 'Alineación y corrección de la posición dental mediante brackets o alineadores para mejorar la estética y mordida.');
 
--- Cita agendada por el paciente e ingresada/asignada por la Recepcionista (id 1)
+-- Citas de prueba iniciales
 INSERT INTO cita (paciente_id, odontologo_id, servicio_id, recepcionista_id, fecha, hora, estado, motivo) VALUES
- (1, 1, 1, 1, CURRENT_DATE + 1, '09:00', 'pendiente', 'Dolor en muela'),
- (2, 2, 2, 1, CURRENT_DATE + 1, '09:30', 'confirmada', 'Limpieza semestral');
+ (1, 1, 1, 1, CURRENT_DATE + 5, '09:00', 'pendiente', 'Dolor en muela'),
+ (2, 2, 2, 1, CURRENT_DATE + 12, '10:00', 'confirmada', 'Limpieza semestral');

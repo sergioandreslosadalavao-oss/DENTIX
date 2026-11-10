@@ -4,8 +4,14 @@ require_once __DIR__ . '/../../app/recepcionista_auth.php';
 requerir_recepcionista('../recepcionista/lista_recepcionista.php');
 require_once "../../config/database.php";
 try {
-    // Obtenemos los odontólogos ordenados por ID
-    $odontologos = $conexion->query("SELECT * FROM odontologo ORDER BY id DESC")->fetchAll();
+    // Obtenemos los odontólogos ordenados por ID junto con la cantidad de citas confirmadas que tienen
+    $sql = "SELECT o.*, 
+                   COUNT(c.id) AS total_citas_activas
+            FROM odontologo o
+            LEFT JOIN cita c ON c.odontologo_id = o.id AND c.estado = 'confirmada'
+            GROUP BY o.id
+            ORDER BY o.id ASC";
+    $odontologos = $conexion->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $odontologos = [];
 }
@@ -53,6 +59,7 @@ try {
             <header class="topbar">
                 <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
                 <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Odontólogos</strong></div>
+                <?php require __DIR__ . '/../recepcionista/perfil_topbar.php'; ?>
             </header>
 
             <div class="page">
@@ -60,7 +67,7 @@ try {
                     <div class="panel__head">
                         <div>
                             <h3 class="panel__title"><i class="fa-solid fa-user-doctor"></i> Cuerpo Médico</h3>
-                            <p class="panel__subtitle">Especialistas activos, contacto y disponibilidad en tiempo real[cite: 16].</p>
+                            <p class="panel__subtitle">Especialistas activos, contacto y disponibilidad en tiempo real.</p>
                         </div>
                         <div class="panel__tools">
                             <a href="form_odontologo.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-user-plus"></i> Nuevo Odontólogo</a>
@@ -98,19 +105,19 @@ try {
                                                 <?php echo !empty($o['email']) ? htmlspecialchars($o['email']) : '<span class="small">No registrado</span>'; ?>
                                             </td>
                                             
-                                            <!-- ESTADO / DISPONIBILIDAD -->
+                                            <!-- ESTADO / DISPONIBILIDAD EN TIEMPO REAL -->
                                             <td data-label="Estado" class="text-center">
                                                 <?php 
-                                                    $esta_activo = isset($o['activo']) ? $o['activo'] : false;
+                                                    $tiene_cita = !empty($o['total_citas_activas']) && (int)$o['total_citas_activas'] > 0;
                                                     
-                                                    if ($esta_activo == 1 || $esta_activo === true || strtolower($esta_activo) === 't'): 
+                                                    if ($tiene_cita): 
                                                 ?>
                                                     <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
                                                         <i class="fa-solid fa-circle-dot me-1"></i> Ocupado / En Cita
                                                     </span>
                                                 <?php else: ?>
                                                     <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
-                                                        <i class="fa-solid fa-circle-check me-1"></i> Disponible
+                                                        <i class="fa-solid fa-circle-check me-1"></i> Activo / Disponible
                                                     </span>
                                                 <?php endif; ?>
                                             </td>

@@ -24,18 +24,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_cita'])) {
             if (!$stmt->fetchColumn()) {
                 $error = "El odontólogo seleccionado no está disponible.";
             } else {
-                $stmt = $conexion->prepare(
-                    "UPDATE cita
-                     SET odontologo_id = ?, estado = 'confirmada', recepcionista_id = ?
-                     WHERE id = ? AND estado = 'pendiente'
-                     RETURNING id"
-                );
-                $stmt->execute([$odontologoId, $_SESSION['recepcionista_id'], $citaId]);
+                // Verificar la fecha de la cita para validar que el odontólogo no tenga ya otra cita ese mismo día
+                $stmtFecha = $conexion->prepare("SELECT fecha FROM cita WHERE id = ?");
+                $stmtFecha->execute([$citaId]);
+                $fechaCita = $stmtFecha->fetchColumn();
 
-                if ($stmt->fetchColumn()) {
-                    $mensaje = "La cita fue confirmada y el odontólogo quedó asignado.";
+                $stmtConflicto = $conexion->prepare(
+                    "SELECT id FROM cita 
+                     WHERE odontologo_id = ? 
+                       AND fecha = ? 
+                       AND id <> ? 
+                       AND estado IN ('confirmada', 'completada')
+                     LIMIT 1"
+                );
+                $stmtConflicto->execute([$odontologoId, $fechaCita, $citaId]);
+
+                if ($stmtConflicto->fetchColumn()) {
+                    $error = "El odontólogo seleccionado ya tiene una cita asignada para el día {$fechaCita}. Cada odontólogo solo puede atender máximo 1 cita por día.";
                 } else {
-                    $error = "La cita ya no está pendiente. Actualiza la página para ver su estado.";
+                    $stmt = $conexion->prepare(
+                        "UPDATE cita
+                         SET odontologo_id = ?, estado = 'confirmada', recepcionista_id = ?
+                         WHERE id = ? AND estado = 'pendiente'
+                         RETURNING id"
+                    );
+                    $stmt->execute([$odontologoId, $_SESSION['recepcionista_id'], $citaId]);
+
+                    if ($stmt->fetchColumn()) {
+                        $mensaje = "La cita fue confirmada y el odontólogo quedó asignado.";
+                    } else {
+                        $error = "La cita ya no está pendiente. Actualiza la página para ver su estado.";
+                    }
                 }
             }
         } catch (PDOException $e) {
@@ -142,6 +161,7 @@ $csrfToken = token_csrf_recepcionista();
             <header class="topbar">
                 <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
                 <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Citas</strong></div>
+                <?php require __DIR__ . '/../recepcionista/perfil_topbar.php'; ?>
             </header>
 
             <div class="page">

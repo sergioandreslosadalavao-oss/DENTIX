@@ -29,6 +29,7 @@ function mensaje(string $texto, string $tipo): void
 function validarServicio(array $post): array
 {
     $nombre = trim($post["nombre"] ?? "");
+    $descripcion = trim($post["descripcion"] ?? "");
     $duracion = filter_var(trim($post["duracion_min"] ?? ""), FILTER_VALIDATE_INT);
     $precioTexto = str_replace(",", ".", trim($post["precio"] ?? ""));
 
@@ -74,6 +75,7 @@ function validarServicio(array $post): array
     return [
         [
             "nombre" => $nombre,
+            "descripcion" => $descripcion,
             "duracion_min" => $duracion,
             "precio" => number_format($precio, 2, ".", "")
         ],
@@ -162,12 +164,14 @@ try {
                     $consulta = $conexion->prepare(
                         "UPDATE servicio
                          SET nombre = :nombre,
+                             descripcion = :descripcion,
                              duracion_min = :duracion,
                              precio = :precio
                          WHERE id = :id"
                     );
                     $consulta->execute([
                         ":nombre" => $datos["nombre"],
+                        ":descripcion" => $datos["descripcion"],
                         ":duracion" => $datos["duracion_min"],
                         ":precio" => $datos["precio"],
                         ":id" => $id

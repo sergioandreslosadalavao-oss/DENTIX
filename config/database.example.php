@@ -1,9 +1,9 @@
 <?php
 $host = '127.0.0.1';
-$port = '5433';
+$port = '5432';
 $dbname = 'citas_odontologicas';
-$user = 'tu_usuario';
-$password = 'tu_contraseña';
+$user = 'postgres';
+$password = '1214121400';
 
 try {
     $conexion = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password);
@@ -12,4 +12,3 @@ try {
 } catch (PDOException $e) {
     exit('Error de conexión');
 }
-?>

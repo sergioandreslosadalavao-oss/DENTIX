@@ -47,6 +47,11 @@
 
             <!-- Botones de Acceso Rápido en la Barra Superior -->
             <div class="header__cta" style="display: flex; gap: 10px; align-items: center;">
+                <!-- Botón de Portal Médico (Odontólogos) -->
+                <a href="view/odontologo/login_odontologo.php" class="btn btn--ghost btn--small">
+                     <i class="fa-solid fa-user-doctor"></i> Odontólogos
+                </a>
+
                 <!-- Botón de Administrador / Recepcionista -->
                 <a href="view/recepcionista/lista_recepcionista.php" class="btn btn--ghost btn--small">
                      <i class="fa-solid fa-user-shield"></i> Administrador
@@ -179,6 +184,9 @@
                             <i class="fa-solid fa-user-doctor"></i>
                             <span><i class="fa-solid fa-star"></i></span>
                         </div>
+                    </div>
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="view/odontologo/login_odontologo.php" class="card-modulo__link">Acceso especialistas <i class="fa-solid fa-arrow-right"></i></a>
                     </div>
                 </article>
 

@@ -62,19 +62,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$servicioExiste) {
                     $error = 'El servicio seleccionado ya no está disponible.';
                 } else {
+                    // Validar regla de negocio: no repetir cita en un lapso menor a 4 días
                     $stmt = $conexion->prepare(
-                        "SELECT id
+                        "SELECT fecha
                          FROM cita
                          WHERE paciente_id = ?
-                           AND fecha = ?
-                           AND hora = ?
-                           AND estado IN ('pendiente', 'confirmada')
+                           AND estado IN ('pendiente', 'confirmada', 'completada')
+                           AND ABS(fecha - ?::date) < 5
                          LIMIT 1"
                     );
-                    $stmt->execute([$paciente['id'], $fecha, $hora]);
+                    $stmt->execute([$paciente['id'], $fecha]);
+                    $citaCercana = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                    if ($stmt->fetchColumn()) {
-                        $error = 'Ya tienes una cita pendiente o confirmada en ese horario.';
+                    if ($citaCercana) {
+                        if ($citaCercana['fecha'] === $fecha) {
+                            $error = 'No puedes tener más de una cita el mismo día.';
+                        } else {
+                            $error = 'Deben transcurrir al menos 4 días completos entre citas. Ya tienes una cita programada o realizada el ' . htmlspecialchars($citaCercana['fecha']) . '.';
+                        }
                     } else {
                         $stmt = $conexion->prepare(
                             "INSERT INTO cita (paciente_id, odontologo_id, servicio_id, fecha, hora, estado)
