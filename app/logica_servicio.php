@@ -13,6 +13,13 @@ if ($metodo !== "POST") {
     exit;
 }
 
+if (!validar_csrf_recepcionista()) {
+    $_SESSION["mensaje"] = "La sesión del formulario venció. Recarga la página e inténtalo de nuevo.";
+    $_SESSION["tipo_mensaje"] = "error";
+    header("Location: ../view/servicio/lista_servicios.php");
+    exit;
+}
+
 $accion = $_POST["accion"] ?? "registrar";
 
 // Pagina a la que se vuelve despues de la operacion
@@ -111,11 +118,12 @@ try {
             } else {
 
                 $consulta = $conexion->prepare(
-                    "INSERT INTO servicio (nombre, duracion_min, precio)
-                     VALUES (:nombre, :duracion, :precio)"
+                    "INSERT INTO servicio (nombre, descripcion, duracion_min, precio)
+                     VALUES (:nombre, :descripcion, :duracion, :precio)"
                 );
                 $consulta->execute([
                     ":nombre" => $datos["nombre"],
+                    ":descripcion" => $datos["descripcion"] === "" ? null : $datos["descripcion"],
                     ":duracion" => $datos["duracion_min"],
                     ":precio" => $datos["precio"]
                 ]);
@@ -177,7 +185,10 @@ try {
                         ":id" => $id
                     ]);
 
-                    if ($consulta->rowCount() > 0) {
+                    $verificacion = $conexion->prepare("SELECT id FROM servicio WHERE id = :id");
+                    $verificacion->execute([":id" => $id]);
+
+                    if ($verificacion->fetch()) {
                         mensaje("Servicio actualizado correctamente.", "exito");
                     } else {
                         mensaje("No se encontró el servicio que intentas actualizar.", "error");

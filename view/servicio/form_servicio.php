@@ -5,30 +5,41 @@ requerir_recepcionista('../recepcionista/lista_recepcionista.php');
 require_once "../../config/database.php";
 
 $error = "";
-$mensaje = "";
+$nombre = trim($_POST['nombre'] ?? '');
+$descripcion = trim($_POST['descripcion'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = trim($_POST['nombre'] ?? '');
-    $descripcion = trim($_POST['descripcion'] ?? '');
-    $duracion_min = intval($_POST['duracion_min'] ?? 0);
-    $precio = floatval($_POST['precio'] ?? 0);
+    $duracion_min = filter_var(trim($_POST['duracion_min'] ?? ''), FILTER_VALIDATE_INT);
+    $precio = filter_var(str_replace(',', '.', trim($_POST['precio'] ?? '0')), FILTER_VALIDATE_FLOAT);
 
-    if (!empty($nombre) && $duracion_min > 0 && $precio >= 0) {
-        try {
-            // Preparamos la inserción incluyendo la descripción clínica
-            $stmt = $conexion->prepare("INSERT INTO servicio (nombre, descripcion, duracion_min, precio) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$nombre, $descripcion, $duracion_min, $precio]);
-
-            // Redirección directa al catálogo unificado de servicios
-            header("Location: lista_servicios.php");
-            exit();
-        } catch (PDOException $e) {
-            $error = "Error al registrar el servicio en la base de datos: " . $e->getMessage();
-        }
+    if (!validar_csrf_recepcionista()) {
+        $error = "La sesión del formulario venció. Recarga la página e inténtalo de nuevo.";
+    } elseif ($nombre === '' || $duracion_min === false || $duracion_min < 15 || $precio === false || $precio < 0) {
+        $error = "Por favor, completa los campos correctamente (Nombre, Duración mínima 15 min y Precio válido).";
     } else {
-        $error = "Por favor, completa los campos obligatorios correctamente (Nombre, Duración mayor a 0 y Precio válido).";
+        try {
+            $dup = $conexion->prepare("SELECT id FROM servicio WHERE lower(nombre) = lower(?) LIMIT 1");
+            $dup->execute([$nombre]);
+
+            if ($dup->fetch()) {
+                $error = "Ya existe un servicio registrado con ese nombre.";
+            } else {
+                // Preparamos la inserción incluyendo la descripción clínica
+                $stmt = $conexion->prepare("INSERT INTO servicio (nombre, descripcion, duracion_min, precio) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$nombre, $descripcion === '' ? null : $descripcion, $duracion_min, round((float) $precio, 2)]);
+
+                $_SESSION['mensaje'] = "Servicio registrado correctamente.";
+                $_SESSION['tipo_mensaje'] = "exito";
+                header("Location: lista_servicios.php");
+                exit();
+            }
+        } catch (PDOException $e) {
+            error_log("Error al registrar servicio: " . $e->getMessage());
+            $error = "No se pudo registrar el servicio. Verifica los datos e inténtalo nuevamente.";
+        }
     }
 }
+$csrfToken = token_csrf_recepcionista();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -64,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form action="form_servicio.php" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                 
                 <!-- Nombre del Servicio -->
                 <div class="mb-3">
@@ -99,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-peso-sign text-muted"></i></span>
                         <input type="number" class="form-control border-start-0" id="precio" name="precio" min="0" step="500" value="0" required>
                     </div>
+                    <small class="text-muted d-block mt-1" id="usdPreviewHint" data-cop-input-preview="#precio"></small>
                 </div>
 
                 <!-- Botón de Registro -->
@@ -121,5 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>

@@ -75,7 +75,7 @@ $estadoLabels = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="../../assests/css/admin.css">
-    <link rel="stylesheet" href="../../assests/css/paciente.css">
+    <link rel="stylesheet" href="../../assests/css/paciente.css?v=20261110-vivid">
 </head>
 <body class="admin-body patient-profile-body">
     <div class="page-progress"><span class="page-progress__bar"></span></div>
@@ -209,5 +209,6 @@ $estadoLabels = [
         </main>
         <footer class="patient-profile-footer">&copy; 2026 DENTIX · Tu salud oral, en buenas manos.</footer>
     </div>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>

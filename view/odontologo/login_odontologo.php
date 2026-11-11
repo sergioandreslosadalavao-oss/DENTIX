@@ -130,6 +130,7 @@ $csrfToken = token_csrf_odontologo();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="../../assests/js/admin-animations.js"></script>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>
 

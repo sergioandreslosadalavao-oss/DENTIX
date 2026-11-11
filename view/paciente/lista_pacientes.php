@@ -4,6 +4,15 @@ require_once __DIR__ . '/../../app/recepcionista_auth.php';
 requerir_recepcionista('../recepcionista/lista_recepcionista.php');
 require_once "../../config/database.php";
 
+$mensaje = $_SESSION['mensaje'] ?? null;
+$tipo_mensaje = $_SESSION['tipo_mensaje'] ?? 'exito';
+unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
+
+if ($mensaje === null && ($_GET['registro'] ?? '') === 'exito') {
+    $mensaje = 'Paciente registrado correctamente.';
+    $tipo_mensaje = 'exito';
+}
+
 try {
     // Obtenemos los pacientes ordenados por ID de manera descendente
     $pacientes = $conexion->query(
@@ -49,6 +58,7 @@ try {
                 <a href="../odontologo/lista_odontologos.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-user-doctor"></i></span>Odontólogos</a>
                 <a href="../servicio/lista_servicios.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-notes-medical"></i></span>Servicios</a>
                 <a href="../cita/lista_citas.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
+                <a href="../recepcionista/reportes.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-chart-column"></i></span>Reportes</a>
             </nav>
             <?php require __DIR__ . '/../recepcionista/boton_cerrar_sesion.php'; ?>
         </aside>
@@ -58,10 +68,15 @@ try {
             <header class="topbar">
                 <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
                 <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Pacientes</strong></div>
-                <?php require __DIR__ . '/../recepcionista/perfil_topbar.php'; ?>
             </header>
 
             <div class="page">
+                <?php if ($mensaje !== null): ?>
+                    <div class="alert <?php echo $tipo_mensaje === 'error' ? 'alert-danger' : 'alert-success'; ?> py-2 small mb-3 border-0 shadow-sm d-flex align-items-center">
+                        <i class="fa-solid <?php echo $tipo_mensaje === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check'; ?> me-2"></i>
+                        <div><?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?></div>
+                    </div>
+                <?php endif; ?>
                 <div class="panel">
                     <div class="panel__head">
                         <div>
@@ -69,7 +84,7 @@ try {
                             <p class="panel__subtitle">Administración completa de expedientes, historia clínica básica y datos de contacto.</p>
                         </div>
                         <div class="panel__tools">
-                            <a href="form_paciente.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-user-plus"></i> Nuevo Paciente</a>
+                            <a href="form_paciente.php?desde=admin" class="btn btn--primary btn--sm"><i class="fa-solid fa-user-plus"></i> Nuevo Paciente</a>
                         </div>
                     </div>
 
@@ -156,5 +171,6 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="../../assests/js/admin-animations.js"></script>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>

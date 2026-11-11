@@ -14,10 +14,10 @@ try {
 }
 
 $iconosTratamiento = [
-    'limpieza' => 'fa-solid fa-sparkles',
+    'limpieza' => 'fa-solid fa-hand-sparkles',
     'blanqueamiento' => 'fa-solid fa-wand-magic-sparkles',
     'extraccion' => 'fa-solid fa-tooth',
-    'endodoncia' => 'fa-solid fa-shield-tooth',
+    'endodoncia' => 'fa-solid fa-shield-halved',
     'ortodoncia' => 'fa-solid fa-teeth',
     'consulta' => 'fa-solid fa-user-doctor',
 ];
@@ -114,7 +114,7 @@ function iconoTratamiento(string $nombre, array $iconos): string
                                 </div>
                                 <div class="treatment-card__price">
                                     <span>Tarifa de referencia</span>
-                                    <strong>$<?php echo number_format((float) $servicio['precio'], 0, ',', '.'); ?> <small>COP</small></strong>
+                                    <strong data-cop-price="<?php echo htmlspecialchars((string) (float) $servicio['precio'], ENT_QUOTES, 'UTF-8'); ?>" data-price-format="card">$<?php echo number_format((float) $servicio['precio'], 0, ',', '.'); ?> <small>COP</small></strong>
                                 </div>
                             </article>
                         <?php endforeach; ?>
@@ -153,5 +153,6 @@ function iconoTratamiento(string $nombre, array $iconos): string
             <div class="footer__copy">&copy; 2026 DENTIX. Todos los derechos reservados.</div>
         </div>
     </footer>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>

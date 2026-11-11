@@ -60,7 +60,7 @@ $csrfToken = token_csrf_paciente();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="../../assests/css/admin.css">
     <link rel="stylesheet" href="../../assests/css/index.css">
-    <link rel="stylesheet" href="../../assests/css/paciente.css">
+    <link rel="stylesheet" href="../../assests/css/paciente.css?v=20261110-vivid">
 </head>
 <body class="admin-body patient-auth-body">
     <main class="patient-auth-card">
@@ -69,7 +69,6 @@ $csrfToken = token_csrf_paciente();
             <span class="brand__text">DENTIX<small>Portal del paciente</small></span>
         </a>
         <div class="patient-auth-heading">
-            <span class="patient-auth-icon"><i class="fa-solid fa-user-check"></i></span>
             <span class="eyebrow">Qué bueno tenerte de vuelta</span>
             <h1>Inicia sesión</h1>
             <p>Accede a tu perfil y consulta el estado de tus citas.</p>
@@ -109,5 +108,6 @@ $csrfToken = token_csrf_paciente();
         </div>
         <a href="../../index.php" class="patient-auth-back"><i class="fa-solid fa-arrow-left"></i> Volver al inicio</a>
     </main>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>

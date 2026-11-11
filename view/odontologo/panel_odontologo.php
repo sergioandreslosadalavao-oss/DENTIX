@@ -621,6 +621,7 @@ $csrfToken = token_csrf_odontologo();
             });
         }
     </script>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>
 

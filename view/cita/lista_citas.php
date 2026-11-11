@@ -7,6 +7,15 @@ require_once "../../config/database.php";
 $mensaje = "";
 $error = "";
 
+if (isset($_SESSION['mensaje'])) {
+    if (($_SESSION['tipo_mensaje'] ?? 'exito') === 'error') {
+        $error = (string) $_SESSION['mensaje'];
+    } else {
+        $mensaje = (string) $_SESSION['mensaje'];
+    }
+    unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
+}
+
 // Asignar un odontólogo confirma la solicitud de cita.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_cita'])) {
     $citaId = filter_var($_POST['cita_id'] ?? null, FILTER_VALIDATE_INT);
@@ -152,6 +161,7 @@ $csrfToken = token_csrf_recepcionista();
                 <a href="../odontologo/lista_odontologos.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-user-doctor"></i></span>Odontólogos</a>
                 <a href="../servicio/lista_servicios.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-notes-medical"></i></span>Servicios</a>
                 <a href="lista_citas.php" class="side-link is-active"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
+                <a href="../recepcionista/reportes.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-chart-column"></i></span>Reportes</a>
             </nav>
             <?php require __DIR__ . '/../recepcionista/boton_cerrar_sesion.php'; ?>
         </aside>
@@ -161,20 +171,19 @@ $csrfToken = token_csrf_recepcionista();
             <header class="topbar">
                 <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
                 <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Citas</strong></div>
-                <?php require __DIR__ . '/../recepcionista/perfil_topbar.php'; ?>
             </header>
 
             <div class="page">
                 
                 <?php if (!empty($mensaje)): ?>
                     <div class="alert alert-success py-2 small mb-3 border-0 shadow-sm">
-                        <i class="fa-solid fa-circle-check me-2"></i> <?php echo $mensaje; ?>
+                        <i class="fa-solid fa-circle-check me-2"></i> <?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?>
                     </div>
                 <?php endif; ?>
                 
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger py-2 small mb-3 border-0 shadow-sm">
-                        <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $error; ?>
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                     </div>
                 <?php endif; ?>
 
@@ -183,6 +192,9 @@ $csrfToken = token_csrf_recepcionista();
                         <div>
                             <h3 class="panel__title"><i class="fa-solid fa-calendar-check"></i> Catálogo de Citas</h3>
                             <p class="panel__subtitle">Solicitudes pendientes de confirmación y asignación de odontólogo.</p>
+                        </div>
+                        <div class="panel__tools">
+                            <a href="form_cita.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-plus"></i> Nueva Cita</a>
                         </div>
                     </div>
 
@@ -204,7 +216,7 @@ $csrfToken = token_csrf_recepcionista();
                                             <td data-label="#"><span class="row-id"><?php echo $index + 1; ?></span></td>
                                             <td data-label="Paciente">
                                                 <strong><?php echo htmlspecialchars($cita['paciente_nombre'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                                                <div class="text-muted small"><i class="fa-solid fa-id-card me-1"></i> Cédula: <?php echo htmlspecialchars($cita['cedula'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                <div class="text-muted small"><i class="fa-solid fa-id-card me-1"></i> Cédula: <?php echo htmlspecialchars($cita['cedula'] ?? 'Sin registro', ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <div class="text-muted small"><i class="fa-solid fa-tooth me-1"></i> <?php echo htmlspecialchars($cita['servicio_nombre'], ENT_QUOTES, 'UTF-8'); ?></div>
                                             </td>
                                             <td data-label="Fecha y Hora">
@@ -212,11 +224,10 @@ $csrfToken = token_csrf_recepcionista();
                                                 <div class="text-muted small"><i class="fa-solid fa-clock me-1"></i> <?php echo htmlspecialchars(substr((string) $cita['hora'], 0, 5), ENT_QUOTES, 'UTF-8'); ?></div>
                                             </td>
                                             <td data-label="Odontólogo">
-                                                <form action="lista_citas.php" method="POST" class="d-flex gap-2 align-items-center" id="form-cita-<?php echo (int) $cita['id']; ?>">
+                                                <form action="lista_citas.php" method="POST" id="form-cita-<?php echo (int) $cita['id']; ?>" style="margin: 0;">
                                                     <input type="hidden" name="actualizar_cita" value="1">
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                                                     <input type="hidden" name="cita_id" value="<?php echo (int) $cita['id']; ?>">
-                                                    
                                                     <select name="odontologo_id" class="form-select form-select-sm" required style="border-radius: 8px;">
                                                         <option value="">-- Seleccionar --</option>
                                                         <?php foreach ($odontologosActivos as $odonto): ?>
@@ -225,12 +236,20 @@ $csrfToken = token_csrf_recepcionista();
                                                             </option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                </form>
                                             </td>
                                             <td data-label="Acciones" class="text-center">
-                                                    <button type="submit" class="btn btn--primary btn--sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                                                <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-wrap">
+                                                    <button type="submit" form="form-cita-<?php echo (int) $cita['id']; ?>" class="btn btn--primary btn--sm" style="display: inline-flex; align-items: center; gap: 5px;">
                                                         <i class="fa-solid fa-check"></i> Confirmar
                                                     </button>
-                                                </form>
+                                                    <a href="editar_cita.php?id=<?php echo (int) $cita['id']; ?>" class="action action--edit" title="Editar cita">
+                                                        <i class="fa-solid fa-pen-to-square"></i> Editar
+                                                    </a>
+                                                    <button type="button" class="action action--delete border-0" data-bs-toggle="modal" data-bs-target="#modalCancelarCita" data-id="<?php echo (int) $cita['id']; ?>" data-paciente="<?php echo htmlspecialchars($cita['paciente_nombre'], ENT_QUOTES, 'UTF-8'); ?>" data-fecha="<?php echo htmlspecialchars($cita['fecha'] . ' ' . substr((string) $cita['hora'], 0, 5), ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <i class="fa-solid fa-ban"></i> Cancelar
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -263,6 +282,7 @@ $csrfToken = token_csrf_recepcionista();
                                     <th>Fecha y Hora</th>
                                     <th>Odontólogo asignado</th>
                                     <th>Estado</th>
+                                    <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -272,7 +292,7 @@ $csrfToken = token_csrf_recepcionista();
                                             <td data-label="#"><span class="row-id"><?php echo $index + 1; ?></span></td>
                                             <td data-label="Paciente">
                                                 <strong><?php echo htmlspecialchars($cita['paciente_nombre'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                                                <div class="text-muted small"><i class="fa-solid fa-id-card me-1"></i> Cédula: <?php echo htmlspecialchars($cita['cedula'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                <div class="text-muted small"><i class="fa-solid fa-id-card me-1"></i> Cédula: <?php echo htmlspecialchars($cita['cedula'] ?? 'Sin registro', ENT_QUOTES, 'UTF-8'); ?></div>
                                             </td>
                                             <td data-label="Servicio"><?php echo htmlspecialchars($cita['servicio_nombre'], ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Fecha y Hora">
@@ -284,15 +304,58 @@ $csrfToken = token_csrf_recepcionista();
                                                 <div class="text-muted small"><?php echo htmlspecialchars($cita['odontologo_especialidad'], ENT_QUOTES, 'UTF-8'); ?></div>
                                             </td>
                                             <td data-label="Estado"><span class="badge bg-success-subtle text-success">Confirmada</span></td>
+                                            <td data-label="Acciones" class="text-center">
+                                                <div class="d-inline-flex gap-1 align-items-center justify-content-center">
+                                                    <a href="editar_cita.php?id=<?php echo (int) $cita['id']; ?>" class="action action--edit">
+                                                        <i class="fa-solid fa-pen-to-square"></i> Editar
+                                                    </a>
+                                                    <button type="button" class="action action--delete border-0" data-bs-toggle="modal" data-bs-target="#modalCancelarCita" data-id="<?php echo (int) $cita['id']; ?>" data-paciente="<?php echo htmlspecialchars($cita['paciente_nombre'], ENT_QUOTES, 'UTF-8'); ?>" data-fecha="<?php echo htmlspecialchars($cita['fecha'] . ' ' . substr((string) $cita['hora'], 0, 5), ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <i class="fa-solid fa-ban"></i> Cancelar
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">Todavía no hay citas confirmadas.</td>
+                                        <td colspan="7" class="text-center text-muted py-4">Todavía no hay citas confirmadas.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal para cancelar cita exigiendo motivo (RN-06) -->
+            <div class="modal fade" id="modalCancelarCita" tabindex="-1" aria-labelledby="modalCancelarCitaLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold text-danger" id="modalCancelarCitaLabel">
+                                <i class="fa-solid fa-ban me-2"></i>Cancelar Cita
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <form action="../../app/logica_cita.php" method="POST">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="accion" value="cancelar">
+                            <input type="hidden" name="id" id="cancel_cita_id" value="">
+                            <div class="modal-body">
+                                <p class="small text-muted mb-3">
+                                    Paciente: <strong id="cancel_paciente" class="text-dark"></strong><br>
+                                    Fecha y hora: <strong id="cancel_fecha" class="text-dark"></strong>
+                                </p>
+                                <div class="mb-2">
+                                    <label for="motivo_cancelacion" class="form-label fw-semibold small text-dark">Motivo de cancelación (obligatorio)</label>
+                                    <textarea class="form-control" id="motivo_cancelacion" name="motivo_cancelacion" rows="3" maxlength="200" required placeholder="Ej. El paciente solicitó reprogramar por motivos personales."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0 pt-0">
+                                <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="submit" class="btn btn-danger rounded-3 fw-semibold">Confirmar cancelación</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -307,5 +370,18 @@ $csrfToken = token_csrf_recepcionista();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="../../assests/js/admin-animations.js"></script>
+    <script>
+        const modalCancelar = document.getElementById('modalCancelarCita');
+        if (modalCancelar) {
+            modalCancelar.addEventListener('show.bs.modal', function (event) {
+                const btn = event.relatedTarget;
+                document.getElementById('cancel_cita_id').value = btn.getAttribute('data-id') || '';
+                document.getElementById('cancel_paciente').textContent = btn.getAttribute('data-paciente') || '';
+                document.getElementById('cancel_fecha').textContent = btn.getAttribute('data-fecha') || '';
+                document.getElementById('motivo_cancelacion').value = '';
+            });
+        }
+    </script>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>

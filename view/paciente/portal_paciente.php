@@ -121,7 +121,7 @@ $horaIngresadaForm = is_string($_POST['hora'] ?? null) ? $_POST['hora'] : '';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="../../assests/css/admin.css">
-    <link rel="stylesheet" href="../../assests/css/paciente.css">
+    <link rel="stylesheet" href="../../assests/css/paciente.css?v=20261110-vivid">
 </head>
 <body class="admin-body patient-auth-body">
     <main class="patient-auth-card patient-booking-card">
@@ -175,5 +175,6 @@ $horaIngresadaForm = is_string($_POST['hora'] ?? null) ? $_POST['hora'] : '';
             </form>
         <?php endif; ?>
     </main>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>

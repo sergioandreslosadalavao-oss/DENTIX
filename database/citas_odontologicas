@@ -3,6 +3,8 @@
 -- Base de datos completa para PostgreSQL / pgAdmin
 -- =====================================================================
 
+
+
 -- 1. ELIMINACIÓN DE OBJETOS PREVIOS (SI EXISTEN)
 DROP VIEW IF EXISTS v_historial_paciente CASCADE;
 DROP VIEW IF EXISTS v_agenda_dia CASCADE;
@@ -27,6 +29,8 @@ CREATE TYPE estado_cita AS ENUM (
     'no_show'
 );
 
+
+
 -- =====================================================================
 -- 3. TABLAS MAESTRAS Y ENTIDADES CON AUTENTICACIÓN
 -- =====================================================================
@@ -44,9 +48,14 @@ CREATE TABLE paciente (
     
     CONSTRAINT pk_paciente PRIMARY KEY (id),
     CONSTRAINT ck_paciente_nombre CHECK (length(trim(nombre)) > 0),
+    CONSTRAINT ck_paciente_nombre_formato CHECK (
+        nombre ~ '^[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+( [A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*$'
+    ),
     CONSTRAINT ck_paciente_telefono CHECK (length(trim(telefono)) > 0),
     CONSTRAINT ck_paciente_fecha_nac CHECK (fecha_nac IS NULL OR fecha_nac <= CURRENT_DATE)
 );
+
+
 
 -- ---------- Recepcionista ----------
 CREATE TABLE recepcionista (
@@ -62,6 +71,8 @@ CREATE TABLE recepcionista (
     CONSTRAINT ck_recepcionista_nombre CHECK (length(trim(nombre)) > 0),
     CONSTRAINT ck_recepcionista_email CHECK (email LIKE '%@%.%')
 );
+
+
 
 -- ---------- Odontólogo ----------
 CREATE TABLE odontologo (
@@ -81,6 +92,8 @@ CREATE TABLE odontologo (
     CONSTRAINT ck_odontologo_email CHECK (email LIKE '%@%.%')
 );
 
+
+
 -- ---------- Servicio ----------
 CREATE TABLE servicio (
     id              INT GENERATED ALWAYS AS IDENTITY,
@@ -94,6 +107,10 @@ CREATE TABLE servicio (
     CONSTRAINT ck_servicio_duracion CHECK (duracion_min >= 15),
     CONSTRAINT ck_servicio_precio CHECK (precio >= 0)
 );
+
+
+
+
 
 -- =====================================================================
 -- 4. TABLA TRANSACCIONAL: CITA
@@ -147,6 +164,11 @@ CREATE TABLE cita (
     )
 );
 
+
+
+
+
+
 -- =====================================================================
 -- 5. DETALLE_CITA (Detalle clínico, 1 por cita completada)
 -- =====================================================================
@@ -174,6 +196,12 @@ CREATE TABLE detalle_cita (
     -- RN-04: Máximo un detalle clínico por cita
     CONSTRAINT uq_detalle_cita UNIQUE (cita_id)
 );
+
+
+
+
+
+
 
 -- =====================================================================
 -- 6. DISPARADORES Y REGLAS DE NEGOCIO (TRIGGERS)
@@ -230,6 +258,10 @@ BEFORE INSERT OR UPDATE OF paciente_id, odontologo_id, fecha, estado ON cita
 FOR EACH ROW
 EXECUTE FUNCTION fn_validar_espaciado_citas_paciente();
 
+
+
+
+
 -- =====================================================================
 -- 7. ÍNDICES ESTRATÉGICOS DE RENDIMIENTO Y BÚSQUEDA
 -- =====================================================================
@@ -241,6 +273,10 @@ CREATE INDEX ix_cita_odontologo ON cita (odontologo_id, fecha);
 CREATE INDEX ix_paciente_nombre ON paciente (lower(nombre));
 CREATE INDEX ix_paciente_telefono ON paciente (telefono);
 CREATE INDEX ix_paciente_cedula ON paciente (cedula);
+
+
+
+
 
 -- =====================================================================
 -- 8. VISTAS OPTIMIZADAS
@@ -292,6 +328,9 @@ LEFT JOIN odontologo o  ON o.id = c.odontologo_id
 INNER JOIN servicio s    ON s.id = c.servicio_id
 LEFT JOIN detalle_cita d ON d.cita_id = c.id;
 
+
+
+
 -- =====================================================================
 -- 9. DATOS INICIALES Y DE PRUEBA
 -- Contraseña general para todos los usuarios de prueba: 12141214
@@ -302,8 +341,8 @@ LEFT JOIN detalle_cita d ON d.cita_id = c.id;
 -- 5 Pacientes
 INSERT INTO paciente (nombre, telefono, email, cedula, password_hash, fecha_nac, alergias) VALUES
  ('Laura Gomez', '3001112233', 'laura@mail.com', '1001112233', crypt('12141214', gen_salt('bf', 10)), '1995-03-14', 'Penicilina'),
- ('Carlos Perez', '3104445566', 'carlos@mail.com', '1004445566', crypt('12141214', gen_salt('bf', 10)), '1988-11-02', NULL),
- ('Maik Cardenas', '3167798282', 'cardenasmaik30@gmail.com', '1076907716', crypt('12141214', gen_salt('bf', 10)), '2000-01-01', NULL),
+ ('Carlos Perez', '3104445566', 'carlos@mail.com', '1004445566', crypt('12141214', gen_salt('bf', 10)), '1988-11-02', 'Ninguna'),
+ ('Maik Cardenas', '3167798282', 'cardenasmaik30@gmail.com', '1076907716', crypt('12141214', gen_salt('bf', 10)), '2003-05-18', 'Ninguna'),
  ('Andrea Morales', '3125556677', 'andrea.morales@mail.com', '1005556677', crypt('12141214', gen_salt('bf', 10)), '1998-07-20', 'Ninguna'),
  ('Felipe Restrepo', '3157778899', 'felipe.restrepo@mail.com', '1007778899', crypt('12141214', gen_salt('bf', 10)), '1992-11-15', 'Ibuprofeno');
 

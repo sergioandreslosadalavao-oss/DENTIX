@@ -3,11 +3,18 @@
 require_once __DIR__ . '/../../app/recepcionista_auth.php';
 requerir_recepcionista('../recepcionista/lista_recepcionista.php');
 require_once "../../config/database.php";
+
+$mensaje = $_SESSION['mensaje'] ?? null;
+$tipo_mensaje = $_SESSION['tipo_mensaje'] ?? 'exito';
+unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
+
 try {
     $servicios = $conexion->query("SELECT * FROM servicio ORDER BY id DESC")->fetchAll();
 } catch (PDOException $e) {
     $servicios = [];
 }
+
+$csrfToken = token_csrf_recepcionista();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -43,6 +50,7 @@ try {
                 <a href="../odontologo/lista_odontologos.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-user-doctor"></i></span>Odontólogos</a>
                 <a href="lista_servicios.php" class="side-link is-active"><span class="side-link__icon"><i class="fa-solid fa-notes-medical"></i></span>Servicios</a>
                 <a href="../cita/lista_citas.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-calendar-days"></i></span>Citas</a>
+                <a href="../recepcionista/reportes.php" class="side-link"><span class="side-link__icon"><i class="fa-solid fa-chart-column"></i></span>Reportes</a>
             </nav>
             <?php require __DIR__ . '/../recepcionista/boton_cerrar_sesion.php'; ?>
         </aside>
@@ -52,10 +60,15 @@ try {
             <header class="topbar">
                 <button class="menu-btn" id="menu-toggle"><span></span><span></span><span></span></button>
                 <div class="topbar__crumbs"><a href="../../index.php">Inicio</a><span>/</span><strong>Servicios</strong></div>
-                <?php require __DIR__ . '/../recepcionista/perfil_topbar.php'; ?>
             </header>
 
             <div class="page">
+                <?php if ($mensaje !== null): ?>
+                    <div class="alert <?php echo $tipo_mensaje === 'error' ? 'alert-danger' : 'alert-success'; ?> py-2 small mb-3 border-0 shadow-sm d-flex align-items-center">
+                        <i class="fa-solid <?php echo $tipo_mensaje === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check'; ?> me-2"></i>
+                        <div><?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?></div>
+                    </div>
+                <?php endif; ?>
                 <div class="panel">
                     <div class="panel__head">
                         <div>
@@ -102,12 +115,20 @@ try {
                                             
                                             <!-- COSTO / PRECIO -->
                                             <td data-label="Precio">
-                                                <span class="money">$ <?php echo number_format($s['precio'], 0, ',', '.'); ?></span>
+                                                <span class="money" data-cop-price="<?php echo htmlspecialchars((string) (float) $s['precio'], ENT_QUOTES, 'UTF-8'); ?>" data-price-format="table">$ <?php echo number_format($s['precio'], 0, ',', '.'); ?></span>
                                             </td>
                                             
                                             <!-- ACCIONES -->
                                             <td data-label="Acciones" class="text-center">
-                                                <a href="editar_servicio.php?id=<?php echo $s['id']; ?>" class="action action--edit"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
+                                                <div class="d-inline-flex gap-2 align-items-center justify-content-center">
+                                                    <a href="editar_servicio.php?id=<?php echo (int) $s['id']; ?>" class="action action--edit"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
+                                                    <form action="../../app/logica_servicio.php" method="POST" style="margin: 0;" onsubmit="return confirm('¿Deseas eliminar este servicio? Si tiene citas asociadas no se eliminará.');">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <input type="hidden" name="accion" value="eliminar">
+                                                        <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
+                                                        <button type="submit" class="action action--delete border-0"><i class="fa-solid fa-trash-can"></i> Eliminar</button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -129,5 +150,6 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="../../assests/js/admin-animations.js"></script>
+    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
 </body>
 </html>
