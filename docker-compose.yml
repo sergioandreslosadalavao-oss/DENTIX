@@ -1,0 +1,9 @@
+services:
+  dentix-web:
+    build: .
+    container_name: dentix_app
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+    restart: unless-stopped
