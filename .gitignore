@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 config/database.php
 config/database.original.php
+=======
+.env
+/vendor/
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481

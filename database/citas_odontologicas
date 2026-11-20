@@ -1,9 +1,17 @@
+<<<<<<< HEAD
 -- =====================================================================
 -- SISTEMA DE CITAS ODONTOLÓGICAS (DENTIX) - VERSIÓN 3.0 (alineada con SRS DENTIX v3.0)
 -- Base de datos completa para PostgreSQL / pgAdmin
 -- =====================================================================
 
 
+=======
+
+-- =====================================================================
+-- SISTEMA DE CITAS ODONTOLÓGICAS (DENTIX) - VERSIÓN 2.1 (CON LOGIN/AUTENTICACIÓN)
+-- Base de datos para PostgreSQL / pgAdmin
+-- =====================================================================
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 
 -- 1. ELIMINACIÓN DE OBJETOS PREVIOS (SI EXISTEN)
 DROP VIEW IF EXISTS v_historial_paciente CASCADE;
@@ -15,10 +23,13 @@ DROP TABLE IF EXISTS odontologo CASCADE;
 DROP TABLE IF EXISTS recepcionista CASCADE;
 DROP TABLE IF EXISTS paciente CASCADE;
 DROP TYPE IF EXISTS estado_cita CASCADE;
+<<<<<<< HEAD
 DROP FUNCTION IF EXISTS fn_validar_espaciado_citas_paciente CASCADE;
 
 -- Extensión para generar hashes bcrypt de las contraseñas de prueba (crypt / gen_salt)
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+=======
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 
 -- 2. TIPO ENUM (Estados de la cita)
 CREATE TYPE estado_cita AS ENUM (
@@ -29,12 +40,16 @@ CREATE TYPE estado_cita AS ENUM (
     'no_show'
 );
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 -- =====================================================================
 -- 3. TABLAS MAESTRAS Y ENTIDADES CON AUTENTICACIÓN
 -- =====================================================================
 
+<<<<<<< HEAD
 -- ---------- Paciente ----------
 CREATE TABLE paciente (
     id            INT GENERATED ALWAYS AS IDENTITY,
@@ -51,30 +66,57 @@ CREATE TABLE paciente (
     CONSTRAINT ck_paciente_nombre_formato CHECK (
         nombre ~ '^[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+( [A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*$'
     ),
+=======
+-- ---------- Paciente (Entidad Pública via QR / Link) ----------
+CREATE TABLE paciente (
+    id           INT GENERATED ALWAYS AS IDENTITY,
+    nombre       VARCHAR(100) NOT NULL,
+    telefono     VARCHAR(20)  NOT NULL,
+    email        VARCHAR(100),
+    fecha_nac    DATE,
+    alergias     TEXT,
+    
+    CONSTRAINT pk_paciente PRIMARY KEY (id),
+    CONSTRAINT ck_paciente_nombre CHECK (length(trim(nombre)) > 0),
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
     CONSTRAINT ck_paciente_telefono CHECK (length(trim(telefono)) > 0),
     CONSTRAINT ck_paciente_fecha_nac CHECK (fecha_nac IS NULL OR fecha_nac <= CURRENT_DATE)
 );
 
+<<<<<<< HEAD
 
 
 -- ---------- Recepcionista ----------
+=======
+-- ---------- Recepcionista (Ente Administrativo con Inicio de Sesión) ----------
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 CREATE TABLE recepcionista (
     id            INT GENERATED ALWAYS AS IDENTITY,
     nombre        VARCHAR(100) NOT NULL,
     telefono      VARCHAR(20)  NOT NULL,
     email         VARCHAR(100) UNIQUE NOT NULL, -- Usuario para login
+<<<<<<< HEAD
     password_hash VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña (bcrypt)
     activo        BOOLEAN      NOT NULL DEFAULT TRUE,
     ultimo_acceso TIMESTAMP,
+=======
+    password_hash VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña (bcrypt/argon2)
+    activo        BOOLEAN      NOT NULL DEFAULT TRUE,
+    ultimo_acceso TIMESTAMP,                    -- Auditoría de inicio de sesión
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
     
     CONSTRAINT pk_recepcionista PRIMARY KEY (id),
     CONSTRAINT ck_recepcionista_nombre CHECK (length(trim(nombre)) > 0),
     CONSTRAINT ck_recepcionista_email CHECK (email LIKE '%@%.%')
 );
 
+<<<<<<< HEAD
 
 
 -- ---------- Odontólogo ----------
+=======
+-- ---------- Odontólogo (Profesional con Inicio de Sesión y Disponibilidad) ----------
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 CREATE TABLE odontologo (
     id              INT GENERATED ALWAYS AS IDENTITY,
     nombre          VARCHAR(100) NOT NULL,
@@ -83,7 +125,11 @@ CREATE TABLE odontologo (
     slug_publico    VARCHAR(60)  NOT NULL,
     email           VARCHAR(100) UNIQUE NOT NULL, -- Usuario para login
     password_hash   VARCHAR(255) NOT NULL,        -- Hash seguro de contraseña
+<<<<<<< HEAD
     activo          BOOLEAN      NOT NULL DEFAULT TRUE,
+=======
+    activo          BOOLEAN      NOT NULL DEFAULT TRUE, -- Disponibilidad para asignación
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
     ultimo_acceso   TIMESTAMP,
     
     CONSTRAINT pk_odontologo PRIMARY KEY (id),
@@ -92,15 +138,21 @@ CREATE TABLE odontologo (
     CONSTRAINT ck_odontologo_email CHECK (email LIKE '%@%.%')
 );
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 -- ---------- Servicio ----------
 CREATE TABLE servicio (
     id              INT GENERATED ALWAYS AS IDENTITY,
     nombre          VARCHAR(80)   NOT NULL,
     duracion_min    INT           NOT NULL,
     precio          NUMERIC(10,2) NOT NULL DEFAULT 0,
+<<<<<<< HEAD
     descripcion     TEXT,
+=======
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
     
     CONSTRAINT pk_servicio PRIMARY KEY (id),
     CONSTRAINT uq_servicio_nombre UNIQUE (nombre),
@@ -108,17 +160,24 @@ CREATE TABLE servicio (
     CONSTRAINT ck_servicio_precio CHECK (precio >= 0)
 );
 
+<<<<<<< HEAD
 
 
 
 
+=======
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 -- =====================================================================
 -- 4. TABLA TRANSACCIONAL: CITA
 -- =====================================================================
 CREATE TABLE cita (
     id                  INT GENERATED ALWAYS AS IDENTITY,
     paciente_id         INT          NOT NULL,
+<<<<<<< HEAD
     odontologo_id       INT,                   -- NULL cuando el paciente la solicita; asignado por Recepción al confirmar
+=======
+    odontologo_id       INT          NOT NULL, -- Asignado manualmente por Recepcionista
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
     servicio_id         INT          NOT NULL,
     recepcionista_id    INT,                   -- Recepcionista autenticada que gestionó/asignó
     fecha               DATE         NOT NULL,
@@ -164,11 +223,14 @@ CREATE TABLE cita (
     )
 );
 
+<<<<<<< HEAD
 
 
 
 
 
+=======
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 -- =====================================================================
 -- 5. DETALLE_CITA (Detalle clínico, 1 por cita completada)
 -- =====================================================================
@@ -179,8 +241,11 @@ CREATE TABLE detalle_cita (
     detalle         TEXT,
     procedimiento   TEXT,
     nota_clinica    TEXT,
+<<<<<<< HEAD
     fecha_salida    DATE,
     hora_salida     TIME,
+=======
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
     creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_detalle_cita PRIMARY KEY (id),
@@ -197,6 +262,7 @@ CREATE TABLE detalle_cita (
     CONSTRAINT uq_detalle_cita UNIQUE (cita_id)
 );
 
+<<<<<<< HEAD
 
 
 
@@ -264,6 +330,10 @@ EXECUTE FUNCTION fn_validar_espaciado_citas_paciente();
 
 -- =====================================================================
 -- 7. ÍNDICES ESTRATÉGICOS DE RENDIMIENTO Y BÚSQUEDA
+=======
+-- =====================================================================
+-- 6. ÍNDICES STRATEGICOS DE RENDIMIENTO Y BÚSQUEDA
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 -- =====================================================================
 CREATE INDEX ix_recepcionista_email ON recepcionista (lower(email));
 CREATE INDEX ix_odontologo_email ON odontologo (lower(email));
@@ -272,6 +342,7 @@ CREATE INDEX ix_cita_paciente ON cita (paciente_id, fecha DESC);
 CREATE INDEX ix_cita_odontologo ON cita (odontologo_id, fecha);
 CREATE INDEX ix_paciente_nombre ON paciente (lower(nombre));
 CREATE INDEX ix_paciente_telefono ON paciente (telefono);
+<<<<<<< HEAD
 CREATE INDEX ix_paciente_cedula ON paciente (cedula);
 
 
@@ -280,6 +351,11 @@ CREATE INDEX ix_paciente_cedula ON paciente (cedula);
 
 -- =====================================================================
 -- 8. VISTAS OPTIMIZADAS
+=======
+
+-- =====================================================================
+-- 7. VISTAS OPTIMIZADAS
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 -- =====================================================================
 
 -- Vista Agenda del Día (Utilizada por Recepción para monitorear y asignar)
@@ -289,7 +365,11 @@ SELECT
     c.fecha,
     c.hora,
     o.id            AS odontologo_id,
+<<<<<<< HEAD
     COALESCE(o.nombre, 'Por asignar')::VARCHAR(100) AS odontologo,
+=======
+    o.nombre        AS odontologo,
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
     o.activo        AS odontologo_activo,
     o.consultorio,
     p.nombre        AS paciente,
@@ -301,11 +381,19 @@ SELECT
     c.motivo
 FROM cita c
 INNER JOIN paciente       p   ON p.id = c.paciente_id
+<<<<<<< HEAD
 LEFT JOIN  odontologo     o   ON o.id = c.odontologo_id
 INNER JOIN servicio       s   ON s.id = c.servicio_id
 LEFT JOIN  recepcionista rec ON rec.id = c.recepcionista_id;
 
 -- Vista Ficha del Paciente (Historial clínico para el odontólogo)
+=======
+INNER JOIN odontologo     o   ON o.id = c.odontologo_id
+INNER JOIN servicio       s   ON s.id = c.servicio_id
+LEFT JOIN  recepcionista rec ON rec.id = c.recepcionista_id;
+
+-- Vista Ficha del Paciente (Utilizada por el Odontólogo en consulta)
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
 CREATE VIEW v_historial_paciente AS
 SELECT
     p.id            AS paciente_id,
@@ -319,6 +407,7 @@ SELECT
     s.nombre        AS servicio,
     d.detalle,
     d.procedimiento,
+<<<<<<< HEAD
     d.nota_clinica,
     d.fecha_salida,
     d.hora_salida
@@ -372,3 +461,38 @@ INSERT INTO servicio (nombre, duracion_min, precio, descripcion) VALUES
 INSERT INTO cita (paciente_id, odontologo_id, servicio_id, recepcionista_id, fecha, hora, estado, motivo) VALUES
  (1, 1, 1, 1, CURRENT_DATE + 5, '09:00', 'pendiente', 'Dolor en muela'),
  (2, 2, 2, 1, CURRENT_DATE + 12, '10:00', 'confirmada', 'Limpieza semestral');
+=======
+    d.nota_clinica
+FROM paciente p
+INNER JOIN cita c        ON c.paciente_id = p.id
+INNER JOIN odontologo o  ON o.id = c.odontologo_id
+INNER JOIN servicio s    ON s.id = c.servicio_id
+LEFT JOIN detalle_cita d ON d.cita_id = c.id;
+
+-- =====================================================================
+-- 8. DATOS DE PRUEBA (CON HASHES DE CLAVE SIMULADOS)
+-- =====================================================================
+
+INSERT INTO paciente (nombre, telefono, email, fecha_nac, alergias) VALUES
+ ('Laura Gomez', '3001112233', 'laura@mail.com', '1995-03-14', 'Penicilina'),
+ ('Carlos Perez', '3104445566', 'carlos@mail.com', '1988-11-02', NULL);
+
+-- Claves de prueba encriptadas con algoritmo Bcrypt ($2a$12$...)
+INSERT INTO recepcionista (nombre, telefono, email, password_hash) VALUES
+ ('María López', '3009998877', 'maria.recepcion@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8');
+
+INSERT INTO odontologo (nombre, especialidad, consultorio, slug_publico, email, password_hash, activo) VALUES
+ ('Dra. Ana Torres', 'Odontologia general', 'Consultorio 1', 'dra-ana-torres', 'ana.torres@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
+ ('Dr. Luis Mendoza', 'Ortodoncia', 'Consultorio 2', 'dr-luis-mendoza', 'luis.mendoza@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', TRUE),
+ ('Dra. Sofia Rios', 'Endodoncia', 'Consultorio 3', 'dra-sofia-rios', 'sofia.rios@clinica.com', '$2a$12$eImiTXuWVxfM37uY4JANjO.Y3u6O1b1w0d7A3vGz6W3f4X5Y6Z7a8', FALSE);
+
+INSERT INTO servicio (nombre, duracion_min, precio) VALUES
+ ('Consulta general', 30, 50000.00),
+ ('Limpieza dental', 30, 80000.00),
+ ('Calza (resina)', 60, 150000.00);
+
+-- Cita agendada por el paciente e ingresada/asignada por la Recepcionista (id 1)
+INSERT INTO cita (paciente_id, odontologo_id, servicio_id, recepcionista_id, fecha, hora, estado, motivo) VALUES
+ (1, 1, 1, 1, CURRENT_DATE + 1, '09:00', 'pendiente', 'Dolor en muela'),
+ (2, 2, 2, 1, CURRENT_DATE + 1, '09:30', 'confirmada', 'Limpieza semestral');
+>>>>>>> 13868a3e694697580caabe69b1014f4f30e55481
