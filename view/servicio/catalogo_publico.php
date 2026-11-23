@@ -36,16 +36,17 @@ function iconoTratamiento(string $nombre, array $iconos): string
 }
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tratamientos odontológicos | DENTIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="../../assests/css/index.css?v=20261103-tratamientos">
+    <link rel="stylesheet" href="../../assets/css/index.css?v=20261103-tratamientos">
 </head>
 <body class="treatments-page">
     <header class="site-header is-scrolled">
@@ -153,6 +154,6 @@ function iconoTratamiento(string $nombre, array $iconos): string
             <div class="footer__copy">&copy; 2026 DENTIX. Todos los derechos reservados.</div>
         </div>
     </footer>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>

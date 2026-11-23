@@ -1,9 +1,34 @@
+version: '3.8'
+
 services:
-  dentix-web:
+  # Servidor Web con PHP y Apache
+  web:
     build: .
     container_name: dentix_app
+    restart: always
     ports:
       - "8000:80"
     volumes:
       - .:/var/www/html
-    restart: unless-stopped
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html/public
+    depends_on:
+      - postgres_db
+
+  # Base de Datos PostgreSQL
+  postgres_db:
+    image: postgres:16
+    container_name: dentix_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: abcd1234
+      POSTGRES_DB: dentix_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+# Volúmenes persistentes
+volumes:
+  postgres_data:

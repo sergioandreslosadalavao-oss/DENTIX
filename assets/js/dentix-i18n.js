@@ -15,7 +15,6 @@
 
     const DICT = {
         // --- Idioma y controles del pie ---
-        'Español · ES': 'English · EN',
         'Colombia · 08:00 a 19:30': 'Colombia · 08:00 AM to 07:30 PM',
         'Colombia · Clínica abierta (08:00–19:30)': 'Colombia · Clinic Open (08:00–19:30)',
         'Colombia · Agenda online 24/7': 'Colombia · 24/7 Online Booking',
@@ -29,7 +28,9 @@
             '© 2026 DENTIX Dental Clinic · Comprehensive Appointment Management System · Colombia',
         'Condiciones de Uso del Portal DENTIX': 'DENTIX Portal Terms of Use',
         'El agendamiento funciona en bloques de 30 minutos (08:00 a 19:30), con un máximo de una cita activa por día y al menos 4 horas entre citas activas. Las solicitudes en línea quedan en estado Pendiente hasta su confirmación por Recepción.':
-            'Scheduling works in 30-minute slots (08:00 AM to 07:30 PM), with a maximum of one active appointment per day and at least 4 hours between active appointments. Online requests remain Pending until confirmed by Reception.',
+            'Scheduling works in 30-minute slots (08:00 AM to 07:30 PM), with a maximum of one active appointment per day and at least 4 full days between active appointments. Online requests remain Pending until confirmed by Reception.',
+        'El agendamiento funciona en bloques de 30 minutos (08:00 a 19:30), con un máximo de una cita activa por día y al menos 4 días completos entre citas activas (RN-07). Las solicitudes en línea quedan en estado Pendiente hasta su confirmación por Recepción.':
+            'Scheduling works in 30-minute slots (08:00 AM to 07:30 PM), with a maximum of one active appointment per day and at least 4 full days between active appointments (RN-07). Online requests remain Pending until confirmed by Reception.',
         'Aviso de Privacidad · Ley Estatutaria 1581 de 2012': 'Privacy Notice · Statutory Law 1581 of 2012',
         'DENTIX recolecta tus datos personales (nombre, cédula, fecha de nacimiento, teléfono y correo) exclusivamente para gestionar tu atención odontológica, confirmar citas y cumplir tus derechos ARCO de acceso, rectificación y supresión.':
             'DENTIX collects your personal data (name, ID number, birth date, phone, and email) exclusively to manage your dental care, confirm appointments, and fulfill your ARCO rights of access, rectification, and deletion.',
@@ -306,6 +307,110 @@
         'Comunícate con el equipo de recepción de la clínica; desde el panel administrativo podrán actualizar tus datos o reprogramar la fecha y hora de tu cita inmediatamente.':
             'Contact the clinic reception team; from the admin dashboard they can immediately update your info or reschedule your appointment date and time.',
         'Guía rápida integrada en DENTIX': 'Integrated quick guide in DENTIX',
+        'Video Demo': 'Demo Video',
+        'Ver video demostrativo': 'Watch demo video',
+        'Ver Video Demo': 'Watch Demo Video',
+        'Recorrido Audiovisual del Sistema': 'Audiovisual System Tour',
+        'Conoce DENTIX': 'See DENTIX',
+        'en acción': 'in action',
+        'Observa en menos de 4 minutos cómo interactúan el Paciente, la Recepción y el Odontólogo dentro de la plataforma.':
+            'Watch in under 4 minutes how the Patient, Reception, and Dentist interact inside the platform.',
+        'Capítulos del recorrido:': 'Tour chapters:',
+        '00:00 Inicio y Catálogo': '00:00 Home & Catalog',
+        '00:45 Portal Paciente (Ley 1581)': '00:45 Patient Portal (Law 1581)',
+        '01:45 Recepción y Reportes': '01:45 Reception & Reports',
+        '02:30 Panel Odontólogo': '02:30 Dentist Panel',
+        'Descargar Video (MP4)': 'Download Video (MP4)',
+        'Editar mis datos': 'Edit my info',
+        'Editar mi información personal': 'Edit my personal information',
+        'Tus cambios se sincronizan automáticamente con recepción y tu odontólogo.':
+            'Your changes automatically sync with reception and your dentist.',
+        'Nombre completo': 'Full name',
+        'Formato Nombre Propio (se permiten conectores como': 'Proper Case format (connectors allowed such as',
+        'y apellidos compuestos).': 'and compound last names).',
+        'Identificador único de acceso (no editable).': 'Unique login identifier (not editable).',
+        'Teléfono de contacto': 'Contact phone',
+        'Correo electrónico': 'Email address',
+        'Fecha de nacimiento': 'Date of birth',
+        'Alergias o alertas médicas': 'Allergies or medical alerts',
+        'Detalle adicional o alergia específica (opcional)...': 'Additional detail or specific allergy (optional)...',
+        'Seguridad: Cambiar contraseña (Opcional)': 'Security: Change password (Optional)',
+        'Nueva contraseña (dejar vacío para mantener)': 'New password (leave blank to keep current)',
+        'Confirmar nueva contraseña': 'Confirm new password',
+        'Sincronización automática con Recepción': 'Automatic sync with Reception',
+        'Guardar cambios': 'Save changes',
+        'Sincronización en vivo': 'Live sync',
+        'Datos actualizados en vivo': 'Data updated live',
+        'Agendamiento exclusivo por el paciente': 'Booking exclusive to the patient',
+        'Direccionamiento de solicitudes pendientes y asignación de odontólogo disponible.':
+            'Routing of pending requests and assignment of an available dentist.',
+        'Módulo de Citas (Direccionamiento)': 'Appointments Module (Routing)',
+        'No asistió': 'No-show',
+        'La cita fue marcada como inasistencia (No asistió).':
+            'The appointment was marked as a no-show.',
+        '¿Confirmas marcar esta cita como inasistencia (No asistió)?':
+            'Confirm marking this appointment as a no-show?',
+        'visualiza las solicitudes agendadas por los pacientes, direcciona cada cita asignando un odontólogo disponible y pulsa':
+            'view requests booked by patients, route each appointment by assigning an available dentist, and click',
+        'visualiza las solicitudes agendadas por los pacientes, direcciona cada cita asignando un odontólogo cuya especialidad coincida con el servicio solicitado (RN-21) y pulsa':
+            'view requests booked by patients, route each appointment by assigning a dentist whose specialty matches the requested service (RN-21), and click',
+        '. También puedes registrar': '. You can also record',
+        'o': 'or',
+        'indicando el motivo obligatorio (sin crear ni editar citas manualmente).':
+            'providing the mandatory reason (without creating or editing appointments manually).',
+        '-- Seleccionar especialidad --': '-- Select specialty --',
+        '-- Seleccionar servicio / especialidad --': '-- Select service / specialty --',
+        'Especialidad Clínica (Servicio que atiende)': 'Clinical Specialty (Service Provided)',
+        'Solo se listan los servicios activos de la clínica; Recepción asignará citas de este servicio a este especialista.':
+            'Only active clinic services are listed; Reception will assign appointments for this service to this specialist.',
+        'La cita fue confirmada y el odontólogo especializado quedó asignado.':
+            'The appointment was confirmed and the specialized dentist has been assigned.',
+        'No hay odontólogos activos con la especialidad solicitada':
+            'No active dentists with the requested specialty',
+        '-- Seleccionar consultorio libre --': '-- Select free office --',
+        'Consultorio Disponible': 'Available Office',
+        'Listado actualizado automáticamente con las especialidades activas de la clínica.':
+            'List automatically updated with active clinic specialties.',
+        'Solo se muestran consultorios libres (los ocupados por otros odontólogos activos aparecen en el Mapa de Consultorios).':
+            'Only free offices are shown (those occupied by active dentists appear in the Office Map).',
+        'Consultorios de la Clínica': 'Clinic Offices',
+        'Control en tiempo real de los 10 consultorios: ocupados por odontólogos activos y espacios libres para asignar.':
+            'Real-time control of the 10 clinic offices: occupied by active dentists and free spaces available to assign.',
+        'Ocupado': 'Occupied',
+        'Libre': 'Free',
+        'Gestionar asignación': 'Manage assignment',
+        'Espacio disponible para asignar a un nuevo odontólogo.':
+            'Space available to assign to a new dentist.',
+        'Asignar aquí': 'Assign here',
+        'Todos los consultorios (10 de 10) están ocupados': 'All offices (10 of 10) are occupied',
+        'Ningún consultorio ocupado actualmente.': 'No offices currently occupied.',
+        'No quedan consultorios libres (10 de 10 ocupados).': 'No free offices remaining (10 of 10 occupied).',
+        'Tus datos personales fueron actualizados correctamente y ya están sincronizados con recepción.':
+            'Your personal data was updated successfully and is now synced with reception.',
+        'Tus datos personales y tu contraseña fueron actualizados y sincronizados con la clínica.':
+            'Your personal data and password were updated and synced with the clinic.',
+        'Descargar Manual (.docx)': 'Download Manual (.docx)',
+        '1. Registro por primera vez (Titular — Ley 1581)': '1. First-time registration (Account Holder — Law 1581)',
+        ', completa tus datos (nombre en formato propio con soporte de conectores como': ', fill in your details (Proper Case name supporting connectors such as',
+        'de, del, la': 'de, del, la',
+        'o apellidos compuestos, número de cédula, fecha de nacimiento, teléfono, correo, alergias médicas y contraseña de 8 a 72 caracteres) y despliega los 5 puntos de': 'or compound last names, ID number, birth date, phone, email, medical allergies, and 8-to-72-char password) and expand all 5 clauses of',
+        '. Elige el tratamiento odontológico, selecciona la fecha deseada (si es para hoy, solo horas futuras del día), escoge un horario en intervalos de 30 minutos (por ejemplo': '. Choose the dental treatment, select your preferred date (if today, only future hours of the day), pick a 30-minute time slot (for example',
+        '3. Actualizar mis alergias médicas en Mi Perfil': '3. Update my medical allergies in My Profile',
+        'En tu portal entra a': 'In your portal go to',
+        'y pulsa el botón': 'and click the',
+        '. Podrás seleccionar alergias del catálogo clínico (Penicilina, Amoxicilina, Lidocaína, Ibuprofeno, Látex, etc.) o marcar': '. You can select allergies from the clinical catalog (Penicillin, Amoxicillin, Lidocaine, Ibuprofen, Latex, etc.) or select',
+        'para que tu odontólogo reciba la alerta actualizada en tiempo real.': 'so your dentist receives the updated alert in real time.',
+        'en bloques exactos de 30 minutos (si agendas para hoy, solo se permiten horas posteriores a la hora actual).': 'in exact 30-minute blocks (if booking for today, only times after the current hour are allowed).',
+        'consulta, edita o elimina expedientes sin citas activas (el registro es exclusivo del titular por Ley 1581). En': 'view, edit, or delete records without active appointments (registration is exclusive to the holder under Law 1581). In',
+        'administra especialistas y observa su estado real (': 'manage specialists and view their real-time status (',
+        'hoy vs.': 'today vs.',
+        'administra los tratamientos odontológicos, su descripción pública, duración mínima (desde 15 minutos) y tarifas actualizadas en COP con equivalente automático en USD.': 'manage dental treatments, their public description, minimum duration (from 15 minutes), and updated pricing in COP with automatic USD equivalent.',
+        'Módulo de Reportes (PDF y CSV)': 'Reports Module (PDF & CSV)',
+        'Módulo de Reportes (PDF y Excel)': 'Reports Module (PDF & Excel)',
+        'filtra por fechas, revisa los 4 KPIs (con separación de': 'filter by dates, review the 4 KPIs (separating',
+        'vs.': 'vs.',
+        ') y descarga o imprime el informe completo o cada una de las 4 tablas individualmente en': ') and download or print the full report or each of the 4 tables individually in',
+        'CSV (Excel)': 'CSV (Excel)',
         'Ver tratamientos': 'View treatments',
         'Agendar cita ahora': 'Book appointment now',
 
@@ -685,6 +790,21 @@
         'No hay pacientes registrados en este momento.': 'No patients registered at this time.',
         'Editar Paciente': 'Edit Patient',
         'Nuevo Odontólogo': 'New Dentist',
+        'Registro desde Consultorios Libres': 'Register from Free Offices',
+        'Gestión y Edición desde Consultorios': 'Register & Edit from Offices',
+        'Nuevo Consultorio': 'New Office',
+        'Crear Consultorio': 'Create Office',
+        'Crear primer consultorio': 'Create first office',
+        'Eliminar consultorio': 'Delete office',
+        'Nombre o Número del Consultorio': 'Office Name or Number',
+        'Adapta la cantidad de consultorios a la capacidad real de tu sede.':
+            'Adapt the number of offices to your clinic’s real capacity.',
+        'Se sugiere automáticamente el siguiente consecutivo disponible, pero puedes escribir el nombre propio de tu sede (2 a 30 caracteres).':
+            'The next available number is suggested automatically, or enter your clinic’s custom name (2 to 30 characters).',
+        'Ej. Consultorio 11 o Box Cirugía': 'e.g. Office 11 or Surgery Room',
+        'Aún no hay consultorios configurados en esta sede.':
+            'No offices configured in this clinic yet.',
+        'No hay consultorios configurados en la sede': 'No offices configured in this clinic',
         'Cuerpo Médico': 'Medical Staff',
         'Cuerpo Médico DENTIX': 'DENTIX Medical Team',
         'Especialistas activos, consultorio y disponibilidad en tiempo real.':
@@ -865,6 +985,10 @@
         'Ej. Consultorio 302': 'e.g. Office 302',
         'Ej. Dr. Carlos Pérez': 'e.g. Dr. Carlos Pérez',
         'Ej. Dra. Ana Torres': 'e.g. Dr. Ana Torres',
+        'Ej. Maik Cardenas o Dra. Ana Torres': 'e.g. Maik Cardenas or Dr. Ana Torres',
+        'Se guardará como:': 'Will be saved as:',
+        'Si no escribes Dr. o Dra., el sistema lo asignará automáticamente según el nombre.':
+            'If you do not type Dr. or Dra., the system will assign it automatically based on the name.',
         'Ej. El paciente asistió puntualmente, presentó buena tolerancia durante la sesión...':
             'e.g. Patient arrived on time and tolerated the procedure well...',
         'Ej. El paciente solicitó reprogramar por motivos personales.':
@@ -987,16 +1111,91 @@
         'Período:': 'Period:',
         'est.': 'est.',
         'solicitudes · $': 'requests · $',
+        'Editar alergias': 'Edit allergies',
+        'Actualizar alergias o alertas médicas': 'Update allergies or medical alerts',
+        'Guardar alergias': 'Save allergies',
+        'Tus alergias y alertas médicas fueron actualizadas correctamente.': 'Your allergies and medical alerts were updated successfully.',
+        'Especifica otra alergia o detalle adicional (ej. Penicilina, látex)...': 'Specify another allergy or extra detail (e.g. Penicillin, latex)...',
+        'Registro exclusivo por el titular': 'Holder-only registration',
+        'Registro y edición exclusivos del titular': 'Holder-only registration & editing',
+        'Consulta en vivo y depuración de expedientes. El registro y la edición pertenecen exclusivamente al titular (Ley 1581).':
+            'Live view and cleanup of patient records. Registration and editing belong exclusively to the account holder (Law 1581).',
+        'Consulta, edición y depuración de expedientes registrados personalmente por los titulares (Ley 1581).':
+            'View, edit, and manage patient records personally registered by account holders (Law 1581).',
+        '¿Deseas eliminar a este paciente? Si tiene citas o historial clínico registrado no podrá eliminarse.':
+            'Do you want to delete this patient? If they have appointments or clinical history, they cannot be deleted.',
+        'Paciente eliminado correctamente.': 'Patient deleted successfully.',
+        'No se puede eliminar el paciente porque tiene citas o historial clínico registrado (Resolución 1995 de 1999).':
+            'Cannot delete patient because they have appointments or clinical history recorded (Resolution 1995 of 1999).',
+        'Cita asignada hoy': 'Appointment assigned today',
+        'Imprimir Todo (PDF)': 'Print All (PDF)',
+        'Exportar Todo (CSV)': 'Export All (CSV)',
+        'Exportar Todo (Excel)': 'Export All (Excel)',
+        'Resumen KPIs (Excel)': 'KPI Summary (Excel)',
+        'Excel': 'Excel',
+        'Imprimir PDF': 'Print PDF',
+        'Imprimir todos los reportes en PDF': 'Print all reports as PDF',
+        'Descargar reporte consolidado en CSV / Excel': 'Download consolidated report in CSV / Excel',
+        'Descargar reporte consolidado en Excel (.xlsx) con 5 hojas diseñadas':
+            'Download consolidated styled 5-sheet Excel (.xlsx) workbook',
+        'Descargar solo el Resumen de KPIs y Líderes en Excel (.xlsx)':
+            'Download KPI & Leaders Summary only in Excel (.xlsx)',
+        'Descubre en poco más de un minuto cómo se conectan el Paciente, la Recepción y el Odontólogo dentro de la plataforma.':
+            'Discover in just over a minute how Patient, Reception, and Dentist connect inside the platform.',
+        'Descubre en 1 minuto cómo se conectan el Paciente, la Recepción y el Odontólogo dentro de la plataforma.':
+            'Discover in 1 minute how Patient, Reception, and Dentist connect inside the platform.',
+        'Conoce la explicación completa de los aprendices SENA creadores del software y el recorrido por los 3 portales.':
+            'Watch the full explanation by the SENA apprentices who created the software and the tour across all 3 portals.',
+        'Presentación Aprendices SENA · MP4': 'SENA Apprentices Presentation · MP4',
+        'Ver comercial · 01:00': 'Watch commercial · 01:00',
+        'Video Oficial DENTIX · HD': 'Official DENTIX Video · HD',
+        'Reproducir comercial oficial DENTIX': 'Play official DENTIX commercial',
+        'Ver en pantalla completa': 'View full screen',
+        'Cerrar reproductor': 'Close player',
+        'Demostración oficial · MP4': 'Official demo · MP4',
+        'Experiencia clínica completa': 'Complete clinical experience',
+        'Registro bajo Ley 1581, edición de perfil y solicitud autónoma de citas.':
+            'Registration under Law 1581, profile editing, and autonomous appointment requests.',
+        'Direccionamiento de citas, consultorios dinámicos y reportes en Excel y PDF.':
+            'Appointment routing, dynamic offices, and Excel & PDF reports.',
+        'Panel del Odontólogo': 'Dentist Panel',
+        'Agenda del especialista, alertas médicas de alergias y cierre clínico.':
+            'Specialist schedule, medical allergy alerts, and clinical closing.',
+        'no-show': 'no-show',
     };
 
     const PATTERNS = [
         [/^¡?Hola,\s*(.+?)!?$/i, 'Hello, $1!'],
+        [/^(\d+)\s+canceladas\s*·\s*(\d+)\s+no-show$/i, '$1 cancelled · $2 no-show'],
+        [/^(\d+)\s+no-show$/i, '$1 no-show'],
+        [/^(\d+)\s+programada\(s\)\s+en\s+días\s+futuros$/i, '$1 scheduled on future days'],
+        [/^No puedes solicitar una cita para hoy en una hora que ya pasó \((.+?)\)\.\s*Elige un horario posterior a (.+?) o selecciona otra fecha\.$/i,
+            'You cannot request an appointment for today at a past time ($1). Choose a time after $2 or select another date.'],
+        [/^No puedes agendar una cita para hoy en una hora que ya pasó \((.+?)\)\.\s*Elige un horario posterior a (.+?) o selecciona otra fecha\.$/i,
+            'You cannot schedule an appointment for today at a past time ($1). Choose a time after $2 or select another date.'],
         [/^Titular validado:\s*(.+)$/i, 'Validated holder: $1'],
         [/^Editar Cita #(\d+)$/i, 'Edit Appointment #$1'],
         [/^Agenda de\s+(.+)$/i, 'Schedule for $1'],
         [/^Cédula:\s*(.+)$/i, 'ID: $1'],
         [/^Documento:\s*(.+)$/i, 'Document: $1'],
+        [/^Consultorio\s+(\d+)\s*\(Libre\)$/i, 'Office $1 (Free)'],
+        [/^--\s*Especialista en\s+(.+?)\s*--$/i, '-- Specialist in $1 --'],
+        [/^Sin odontólogo activo en\s+(.+)$/i, 'No active dentist in $1'],
+        [/^Asigna esta especialidad a un odontólogo en$/i, 'Assign this specialty to a dentist in'],
+        [/^Consultorio\s+(\d+)\s*\(Actual\)$/i, 'Office $1 (Current)'],
+        [/^Consultorio\s+(\d+)\s*·\s*(.+)$/i, 'Office $1 · $2'],
         [/^Consultorio\s+(\d+)$/i, 'Office $1'],
+        [/^(\d+)\s+Ocupados\s*\(Activos\)$/i, '$1 Occupied (Active)'],
+        [/^(\d+)\s+Libres\s+de\s+(\d+)$/i, '$1 Free of $2'],
+        [/^(\d+)\s+libres\s+de\s+(\d+)$/i, '$1 free of $2'],
+        [/^Control en tiempo real de los (\d+) consultorios configurados en la sede: crea o elimina espacios según la capacidad de tu clínica\.$/i,
+            'Real-time control of the $1 offices configured in this clinic: create or delete spaces according to your clinic capacity.'],
+        [/^Consultorios activos \/ ocupados \((\d+)\):$/i, 'Active / occupied offices ($1):'],
+        [/^Listado de consultorios libres disponibles \((\d+)\):$/i, 'Available free offices ($1):'],
+        [/^Odontólogos inactivos \(sin consultorio activo — (\d+)\):$/i, 'Inactive dentists (no active office — $1):'],
+        [/^Todos los consultorios \((\d+) de (\d+)\) están ocupados$/i, 'All offices ($1 of $2) are occupied'],
+        [/^No quedan consultorios libres \((\d+) de (\d+) ocupados\)\. Crea uno nuevo si tu sede cuenta con más espacios\.$/i,
+            'No free offices left ($1 of $2 occupied). Create a new one if your clinic has more rooms.'],
         [/^(\d+)\s+minutos?$/i, '$1 minutes'],
         [/^(\d+)\s+min$/i, '$1 min'],
         [/^(\d+)\s+de\s+(\d+)$/i, '$1 of $2'],
@@ -1020,6 +1219,76 @@
         [/^Colombia · Agenda online 24\/7$/i, 'Colombia · 24/7 Online Booking'],
     ];
 
+    // Patrones inversos EN -> ES (respaldo seguro ante nodos recreados dinámicamente en inglés)
+    const REVERSE_PATTERNS = [
+        [/^Hello,\s*(.+?)!$/i, '¡Hola, $1!'],
+        [/^(\d+)\s+cancelled\s*·\s*(\d+)\s+no-show$/i, '$1 canceladas · $2 no-show'],
+        [/^(\d+)\s+scheduled on future days$/i, '$1 programada(s) en días futuros'],
+        [/^You cannot request an appointment for today at a past time \((.+?)\)\. Choose a time after (.+?) or select another date\.$/i,
+            'No puedes solicitar una cita para hoy en una hora que ya pasó ($1). Elige un horario posterior a $2 o selecciona otra fecha.'],
+        [/^You cannot schedule an appointment for today at a past time \((.+?)\)\. Choose a time after (.+?) or select another date\.$/i,
+            'No puedes agendar una cita para hoy en una hora que ya pasó ($1). Elige un horario posterior a $2 o selecciona otra fecha.'],
+        [/^Validated holder:\s*(.+)$/i, 'Titular validado: $1'],
+        [/^Edit Appointment #(\d+)$/i, 'Editar Cita #$1'],
+        [/^Schedule for\s+(.+)$/i, 'Agenda de $1'],
+        [/^ID:\s*(.+)$/i, 'Cédula: $1'],
+        [/^Document:\s*(.+)$/i, 'Documento: $1'],
+        [/^Office\s+(\d+)\s*\(Free\)$/i, 'Consultorio $1 (Libre)'],
+        [/^--\s*Specialist in\s+(.+?)\s*--$/i, '-- Especialista en $1 --'],
+        [/^No active dentist in\s+(.+)$/i, 'Sin odontólogo activo en $1'],
+        [/^Assign this specialty to a dentist in$/i, 'Asigna esta especialidad a un odontólogo en'],
+        [/^Office\s+(\d+)\s*\(Current\)$/i, 'Consultorio $1 (Actual)'],
+        [/^Office\s+(\d+)\s*·\s*(.+)$/i, 'Consultorio $1 · $2'],
+        [/^Office\s+(\d+)$/i, 'Consultorio $1'],
+        [/^(\d+)\s+Occupied\s*\(Active\)$/i, '$1 Ocupados (Activos)'],
+        [/^(\d+)\s+Free\s+of\s+(\d+)$/i, '$1 Libres de $2'],
+        [/^(\d+)\s+free\s+of\s+(\d+)$/i, '$1 libres de $2'],
+        [/^Real-time control of the (\d+) offices configured in this clinic: create or delete spaces according to your clinic capacity\.$/i,
+            'Control en tiempo real de los $1 consultorios configurados en la sede: crea o elimina espacios según la capacidad de tu clínica.'],
+        [/^Active \/ occupied offices \((\d+)\):$/i, 'Consultorios activos / ocupados ($1):'],
+        [/^Available free offices \((\d+)\):$/i, 'Listado de consultorios libres disponibles ($1):'],
+        [/^Inactive dentists \(no active office — (\d+)\):$/i, 'Odontólogos inactivos (sin consultorio activo — $1):'],
+        [/^All offices \((\d+) of (\d+)\) are occupied$/i, 'Todos los consultorios ($1 de $2) están ocupados'],
+        [/^No free offices left \((\d+) of (\d+) occupied\)\. Create a new one if your clinic has more rooms\.$/i,
+            'No quedan consultorios libres ($1 de $2 ocupados). Crea uno nuevo si tu sede cuenta con más espacios.'],
+        [/^(\d+)\s+minutes$/i, '$1 minutos'],
+        [/^(\d+)\s+of\s+(\d+)$/i, '$1 de $2'],
+        [/^(\d+)\s+appointments$/i, '$1 citas'],
+        [/^\((\d+)\s+completed\)$/i, '($1 finalizadas)'],
+        [/^(\d+)\s+requests$/i, '$1 solicitudes'],
+        [/^Period:\s*(.+?)\s*→\s*(.+)$/i, 'Período: $1 → $2'],
+        [/^All completed care visits under the profile of\s+(.+)$/i, 'Todas las atenciones completadas bajo el perfil de $1'],
+        [/^All completed care visits under the profile of$/i, 'Todas las atenciones completadas bajo el perfil de'],
+        [/^Attention! To confirm you read everything, you must first click "Read more\.\.\." and review all 5 points \(remaining to read:\s*([^)]+)\)\.$/i,
+            '¡Atención! Para poder confirmar que leíste todo, primero debes hacer clic en "Ver más..." y revisar la información completa de los 5 puntos (te falta leer: $1).'],
+        [/^The selected dentist already has an appointment assigned on (.+?)\. Each dentist can handle at most 1 appointment per day\.$/i,
+            'El odontólogo seleccionado ya tiene una cita asignada para el día $1. Cada odontólogo solo puede atender máximo 1 cita por día.'],
+        [/^At least 4 full days must pass between appointments\. You already have an appointment on (.+)$/i,
+            'Deben transcurrir al menos 4 días completos entre citas. Ya tienes una cita programada o realizada el $1'],
+        [/^Colombia · Clinic Open \(08:00–19:30\)$/i, 'Colombia · Clínica abierta (08:00–19:30)'],
+        [/^Colombia · 24\/7 Online Booking$/i, 'Colombia · Agenda online 24/7'],
+    ];
+
+    // Diccionario inverso EN -> ES construido automáticamente desde DICT
+    const REVERSE_DICT = Object.create(null);
+    (function buildReverseDict() {
+        const tieneAcento = (s) => /[áéíóúüñ¡¿]/i.test(s);
+        for (const esKey in DICT) {
+            if (!Object.prototype.hasOwnProperty.call(DICT, esKey)) continue;
+            const enVal = DICT[esKey];
+            if (!enVal || enVal === esKey) continue;
+            if (!(enVal in REVERSE_DICT) || (tieneAcento(esKey) && !tieneAcento(REVERSE_DICT[enVal]))) {
+                REVERSE_DICT[enVal] = esKey;
+            }
+        }
+    })();
+
+    const OBSERVER_CONFIG = {
+        childList: true,
+        subtree: true,
+        characterData: true,
+    };
+
     const origText = new WeakMap();
     const origAttrs = new WeakMap();
     let origDocTitle = document.title;
@@ -1027,6 +1296,49 @@
     let currentCurrency = 'COP';
     let isApplying = false;
     let observer = null;
+
+    /**
+     * Bloquea el traductor automático del navegador (Chrome / Edge / Brave) para evitar
+     * que inyecte nodos <font>, corrompa referencias del DOM o choque con ES <-> EN de DENTIX.
+     */
+    function ensureNoBrowserTranslate() {
+        try {
+            if (document.documentElement) {
+                document.documentElement.setAttribute('translate', 'no');
+                document.documentElement.classList.add('notranslate');
+            }
+            if (document.head && !document.head.querySelector('meta[name="google"][content="notranslate"]')) {
+                const meta = document.createElement('meta');
+                meta.name = 'google';
+                meta.content = 'notranslate';
+                document.head.appendChild(meta);
+            }
+        } catch (e) {
+            // Ignorar
+        }
+    }
+
+    /**
+     * Pausa y desconecta el MutationObserver mientras aplicamos cambios propios al DOM,
+     * evitando que la cola asíncrona de mutaciones sobrescriba origText con texto traducido.
+     */
+    function withObserverPaused(fn) {
+        const shouldReconnect = Boolean(observer);
+        if (observer) {
+            observer.takeRecords();
+            observer.disconnect();
+        }
+        const prevApplying = isApplying;
+        isApplying = true;
+        try {
+            return fn();
+        } finally {
+            isApplying = prevApplying;
+            if (shouldReconnect && !prevApplying && observer && document.body) {
+                observer.observe(document.body, OBSERVER_CONFIG);
+            }
+        }
+    }
 
     function readCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
@@ -1114,7 +1426,6 @@
             }
         }
 
-        // Traducción parcial para mensajes compuestos en banner sorpresa
         if (normalized.includes('te falta leer:')) {
             return lead + normalized.replace(
                 /^¡Atención!.*?te falta leer:\s*([^)]+)\)\.?$/i,
@@ -1123,6 +1434,53 @@
         }
 
         return raw;
+    }
+
+    function translateToSpanish(raw) {
+        if (!raw || typeof raw !== 'string') return raw;
+        const matchWs = raw.match(/^(\s*)([\s\S]*?)(\s*)$/);
+        if (!matchWs) return raw;
+
+        const lead = matchWs[1];
+        const body = matchWs[2];
+        const trail = matchWs[3];
+        if (!body) return raw;
+
+        const normalized = body.replace(/\s+/g, ' ').trim();
+        if (normalized in REVERSE_DICT) {
+            return lead + REVERSE_DICT[normalized] + trail;
+        }
+
+        for (let i = 0; i < REVERSE_PATTERNS.length; i++) {
+            const [regex, replacement] = REVERSE_PATTERNS[i];
+            if (regex.test(normalized)) {
+                return lead + normalized.replace(regex, replacement) + trail;
+            }
+        }
+
+        if (normalized.includes('remaining:')) {
+            return lead + normalized.replace(
+                /^Attention!.*?remaining:\s*([^)]+)\)\.?$/i,
+                '¡Atención! Primero haz clic en "Ver más..." en los 5 puntos (te falta leer: $1).'
+            ) + trail;
+        }
+
+        return raw;
+    }
+
+    function isKnownEnglish(raw) {
+        if (!raw || typeof raw !== 'string') return false;
+        const normalized = raw.replace(/\s+/g, ' ').trim();
+        if (!normalized) return false;
+        if (normalized in REVERSE_DICT && !Object.prototype.hasOwnProperty.call(DICT, normalized)) {
+            return true;
+        }
+        for (let i = 0; i < REVERSE_PATTERNS.length; i++) {
+            if (REVERSE_PATTERNS[i][0].test(normalized)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     const TRANSLATABLE_ATTRS = ['placeholder', 'title', 'aria-label', 'data-label'];
@@ -1135,24 +1493,39 @@
 
         if (lang === 'en') {
             if (!origText.has(node)) {
-                origText.set(node, node.nodeValue);
+                const cur = node.nodeValue || '';
+                origText.set(node, isKnownEnglish(cur) ? translateToSpanish(cur) : cur);
             }
             const base = origText.get(node);
             const translated = translateRaw(base);
             if (translated !== node.nodeValue) {
                 node.nodeValue = translated;
             }
-        } else if (origText.has(node)) {
-            const original = origText.get(node);
-            if (node.nodeValue !== original) {
-                node.nodeValue = original;
+        } else {
+            let targetEs = null;
+            if (origText.has(node)) {
+                const stored = origText.get(node);
+                targetEs = isKnownEnglish(stored) ? translateToSpanish(stored) : stored;
+                if (targetEs !== stored) {
+                    origText.set(node, targetEs);
+                }
+            } else {
+                const cur = node.nodeValue || '';
+                const reversed = translateToSpanish(cur);
+                if (reversed !== cur) {
+                    targetEs = reversed;
+                    origText.set(node, reversed);
+                }
+            }
+            if (targetEs !== null && node.nodeValue !== targetEs) {
+                node.nodeValue = targetEs;
             }
         }
     }
 
     function processElementAttrs(el, lang) {
         if (!el || el.nodeType !== 1) return;
-        if (el.closest('[data-i18n-ignore]')) return;
+        if (el.closest('[data-i18n-ignore], [data-cop-price]')) return;
 
         let map = origAttrs.get(el);
         if (!map) {
@@ -1165,24 +1538,40 @@
             if (!el.hasAttribute(attr)) continue;
             if (lang === 'en') {
                 if (!(attr in map)) {
-                    map[attr] = el.getAttribute(attr);
+                    const curAttr = el.getAttribute(attr);
+                    map[attr] = isKnownEnglish(curAttr) ? translateToSpanish(curAttr) : curAttr;
                 }
                 const tr = translateRaw(map[attr]);
                 if (tr !== el.getAttribute(attr)) {
                     el.setAttribute(attr, tr);
                 }
-            } else if (attr in map && el.getAttribute(attr) !== map[attr]) {
-                el.setAttribute(attr, map[attr]);
+            } else if (attr in map) {
+                const restored = isKnownEnglish(map[attr]) ? translateToSpanish(map[attr]) : map[attr];
+                map[attr] = restored;
+                if (el.getAttribute(attr) !== restored) {
+                    el.setAttribute(attr, restored);
+                }
+            } else {
+                const curAttr = el.getAttribute(attr);
+                const rev = translateToSpanish(curAttr);
+                if (rev !== curAttr) {
+                    map[attr] = rev;
+                    el.setAttribute(attr, rev);
+                }
             }
         }
 
         if (el.tagName === 'INPUT' && (el.type === 'submit' || el.type === 'button' || el.type === 'reset')) {
             if (lang === 'en') {
-                if (!('value' in map)) map.value = el.value;
+                if (!('value' in map)) {
+                    map.value = isKnownEnglish(el.value) ? translateToSpanish(el.value) : el.value;
+                }
                 const tr = translateRaw(map.value);
                 if (tr !== el.value) el.value = tr;
-            } else if ('value' in map && el.value !== map.value) {
-                el.value = map.value;
+            } else if ('value' in map) {
+                const restored = isKnownEnglish(map.value) ? translateToSpanish(map.value) : map.value;
+                map.value = restored;
+                if (el.value !== restored) el.value = restored;
             }
         }
     }
@@ -1252,12 +1641,34 @@
         });
     }
 
+    function syncFooterCurrencyLabels() {
+        document.querySelectorAll('.mega-footer__item span').forEach((spanEl) => {
+            const txt = (spanEl.textContent || '').trim();
+            if (
+                txt === 'Tratamientos, tiempos y tarifas COP' ||
+                txt === 'Tratamientos, tiempos y tarifas USD' ||
+                txt === 'Treatments, durations, and COP pricing' ||
+                txt === 'Treatments, durations, and USD pricing'
+            ) {
+                const esLabel = currentCurrency === 'USD'
+                    ? 'Tratamientos, tiempos y tarifas USD'
+                    : 'Tratamientos, tiempos y tarifas COP';
+                const enLabel = currentCurrency === 'USD'
+                    ? 'Treatments, durations, and USD pricing'
+                    : 'Treatments, durations, and COP pricing';
+                spanEl.textContent = currentLang === 'en' ? enLabel : esLabel;
+                if (spanEl.firstChild && spanEl.firstChild.nodeType === 3) {
+                    origText.set(spanEl.firstChild, esLabel);
+                }
+            }
+        });
+    }
+
     function applyCurrency(currency) {
         currentCurrency = currency === 'USD' ? 'USD' : 'COP';
         persistCurrency(currentCurrency);
 
-        isApplying = true;
-        try {
+        withObserverPaused(() => {
             document.querySelectorAll('[data-cop-price]').forEach((el) => {
                 const copVal = parseFloat(el.getAttribute('data-cop-price') || '0');
                 const fmt = el.getAttribute('data-price-format') || 'table';
@@ -1271,7 +1682,12 @@
                     } else {
                         el.textContent = '$' + usd + ' USD';
                     }
-                    el.setAttribute('title', 'Equivalente COP: $' + formatCop(copVal) + ' COP (1 USD = $4.000 COP)');
+                    el.setAttribute(
+                        'title',
+                        currentLang === 'en'
+                            ? 'COP equivalent: $' + formatCop(copVal) + ' COP (1 USD = $4,000 COP)'
+                            : 'Equivalente COP: $' + formatCop(copVal) + ' COP (1 USD = $4.000 COP)'
+                    );
                 } else {
                     const cop = formatCop(copVal);
                     if (fmt === 'card') {
@@ -1281,34 +1697,28 @@
                     } else {
                         el.textContent = '$ ' + cop;
                     }
-                    el.setAttribute('title', 'Equivalente USD: $' + formatUsd(copVal) + ' USD');
+                    el.setAttribute(
+                        'title',
+                        currentLang === 'en'
+                            ? 'USD equivalent: $' + formatUsd(copVal) + ' USD'
+                            : 'Equivalente USD: $' + formatUsd(copVal) + ' USD'
+                    );
                 }
             });
 
-            // Actualizar también la etiqueta COP/USD del directorio en el pie de página
-            document.querySelectorAll('.mega-footer__item span').forEach((spanEl) => {
-                const txt = (spanEl.textContent || '').trim();
-                if (txt === 'Tratamientos, tiempos y tarifas COP' || txt === 'Tratamientos, tiempos y tarifas USD') {
-                    spanEl.textContent = currentCurrency === 'USD' ? 'Tratamientos, tiempos y tarifas USD' : 'Tratamientos, tiempos y tarifas COP';
-                } else if (txt === 'Treatments, durations, and COP pricing' || txt === 'Treatments, durations, and USD pricing') {
-                    spanEl.textContent = currentCurrency === 'USD' ? 'Treatments, durations, and USD pricing' : 'Treatments, durations, and COP pricing';
-                }
-            });
-
+            syncFooterCurrencyLabels();
             updateInputPreviews(currentCurrency);
             syncControlsUI(currentLang, currentCurrency);
-        } finally {
-            isApplying = false;
-        }
+        });
     }
 
     function applyLanguage(lang) {
         currentLang = lang === 'en' ? 'en' : 'es';
         persistLang(currentLang);
+        ensureNoBrowserTranslate();
         document.documentElement.lang = currentLang;
 
-        isApplying = true;
-        try {
+        withObserverPaused(() => {
             if (currentLang === 'en') {
                 document.title = translateRaw(origDocTitle);
             } else {
@@ -1318,10 +1728,14 @@
             if (document.body) {
                 walkAndApply(document.body, currentLang);
             }
-            updateInputPreviews(currentCurrency);
+            applyCurrency(currentCurrency);
             syncControlsUI(currentLang, currentCurrency);
-        } finally {
-            isApplying = false;
+        });
+
+        try {
+            window.dispatchEvent(new CustomEvent('dentix:langchange', { detail: { lang: currentLang } }));
+        } catch (e) {
+            // Ignorar
         }
     }
 
@@ -1380,8 +1794,9 @@
 
         const wrap = document.createElement('div');
         wrap.id = 'dentixLangFloating';
-        wrap.className = 'dentix-lang-floating';
+        wrap.className = 'dentix-lang-floating notranslate';
         wrap.setAttribute('data-i18n-ignore', 'true');
+        wrap.setAttribute('translate', 'no');
         wrap.setAttribute('aria-label', 'Language & Currency');
         wrap.innerHTML =
             '<i class="fa-solid fa-globe dentix-lang-floating__icon" aria-hidden="true"></i>' +
@@ -1410,17 +1825,19 @@
         const footerSelect = document.getElementById('dentixLangSelect');
         if (footerSelect) {
             footerSelect.value = currentLang;
-            footerSelect.addEventListener('change', () => {
-                applyLanguage(footerSelect.value);
-            });
+            footerSelect.setAttribute('translate', 'no');
+            const onLangChange = () => applyLanguage(footerSelect.value);
+            footerSelect.addEventListener('change', onLangChange);
+            footerSelect.addEventListener('input', onLangChange);
         }
 
         const currencySelect = document.getElementById('dentixCurrencySelect');
         if (currencySelect) {
             currencySelect.value = currentCurrency;
-            currencySelect.addEventListener('change', () => {
-                applyCurrency(currencySelect.value);
-            });
+            currencySelect.setAttribute('translate', 'no');
+            const onCurChange = () => applyCurrency(currencySelect.value);
+            currencySelect.addEventListener('change', onCurChange);
+            currencySelect.addEventListener('input', onCurChange);
         }
 
         document.querySelectorAll('[data-cop-input-preview]').forEach((previewEl) => {
@@ -1435,23 +1852,31 @@
     function startObserver() {
         if (observer || !document.body) return;
         observer = new MutationObserver((mutations) => {
-            if (isApplying) return;
-            if (currentLang !== 'en') return;
+            if (isApplying || currentLang !== 'en') return;
 
-            isApplying = true;
-            try {
+            withObserverPaused(() => {
                 for (let i = 0; i < mutations.length; i++) {
                     const m = mutations[i];
                     if (m.type === 'characterData') {
                         const node = m.target;
-                        if (node.parentElement && !node.parentElement.closest('[data-i18n-ignore]')) {
-                            origText.set(node, node.nodeValue);
+                        if (node.parentElement && !node.parentElement.closest('[data-i18n-ignore], [data-cop-price], [data-cop-input-preview]')) {
+                            const val = node.nodeValue || '';
+                            const prevOrig = origText.get(node);
+                            // Nunca sobrescribir el original español con su propia traducción inglesa
+                            if (prevOrig !== undefined && translateRaw(prevOrig) === val) {
+                                continue;
+                            }
+                            if (!isKnownEnglish(val)) {
+                                origText.set(node, val);
+                            } else if (!origText.has(node)) {
+                                origText.set(node, translateToSpanish(val));
+                            }
                             processTextNode(node, 'en');
                         }
                     } else if (m.type === 'childList') {
                         m.addedNodes.forEach((added) => {
                             if (added.nodeType === 1) {
-                                if (!added.closest('[data-i18n-ignore]')) {
+                                if (!added.closest('[data-i18n-ignore], [data-cop-price], [data-cop-input-preview]')) {
                                     walkAndApply(added, 'en');
                                 }
                             } else if (added.nodeType === 3) {
@@ -1460,16 +1885,10 @@
                         });
                     }
                 }
-            } finally {
-                isApplying = false;
-            }
+            });
         });
 
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            characterData: true,
-        });
+        observer.observe(document.body, OBSERVER_CONFIG);
     }
 
     // Traducir también diálogos nativos window.confirm(...)
@@ -1485,16 +1904,24 @@
         getCurrency: () => currentCurrency,
         setCurrency: (currency) => applyCurrency(currency),
         t: (str) => (currentLang === 'en' ? translateRaw(str) : str),
+        toEs: (str) => translateToSpanish(str),
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        origDocTitle = document.title;
+    function initDentixI18n() {
+        ensureNoBrowserTranslate();
+        origDocTitle = isKnownEnglish(document.title) ? translateToSpanish(document.title) : document.title;
         currentLang = detectInitialLang();
         currentCurrency = detectInitialCurrency();
         injectFloatingSwitcher();
         bindFooterSelectors();
         applyLanguage(currentLang);
-        applyCurrency(currentCurrency);
         startObserver();
-    });
+    }
+
+    ensureNoBrowserTranslate();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDentixI18n);
+    } else {
+        initDentixI18n();
+    }
 })();

@@ -3,6 +3,7 @@
 require_once __DIR__ . "/recepcionista_auth.php";
 requerir_recepcionista("../view/recepcionista/lista_recepcionista.php");
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/odontologo_catalogos.php";
 
 $metodo = $_SERVER["REQUEST_METHOD"];
 $accion = $_GET["accion"] ?? $_POST["accion"] ?? "registrar";
@@ -84,14 +85,26 @@ try {
     // REGISTRAR ODONTOLOGO
     if ($accion === "registrar") {
 
-        $nombre = trim($_POST["nombre"] ?? "");
+        $nombre = formatearNombreOdontologoConTitulo(trim($_POST["nombre"] ?? ""));
         $especialidad = trim($_POST["especialidad"] ?? "");
         $consultorio = trim($_POST["consultorio"] ?? "");
         $email = trim($_POST["email"] ?? "");
         $password = $_POST["password"] ?? "";
 
+        $serviciosValidos = obtenerEspecialidadesOdontologia($conexion);
+        $especialidadCanon = "";
+        foreach ($serviciosValidos as $srvOpt) {
+            if (normalizarClaveCatalogo($srvOpt) === normalizarClaveCatalogo($especialidad)) {
+                $especialidadCanon = $srvOpt;
+                break;
+            }
+        }
+
         if ($nombre === "" || $especialidad === "" || $email === "" || $password === "") {
             $_SESSION["mensaje"] = "Error: nombre, especialidad, correo y contraseña son obligatorios.";
+            $_SESSION["tipo_mensaje"] = "error";
+        } elseif ($especialidadCanon === "") {
+            $_SESSION["mensaje"] = "Error: la especialidad debe corresponder a uno de los servicios activos de la clínica (RN-21).";
             $_SESSION["tipo_mensaje"] = "error";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION["mensaje"] = "Error: el correo electrónico no es válido.";
@@ -100,6 +113,7 @@ try {
             $_SESSION["mensaje"] = "Error: la contraseña debe tener entre 6 y 72 caracteres.";
             $_SESSION["tipo_mensaje"] = "error";
         } else {
+            $especialidad = $especialidadCanon;
 
             $slug = generarSlug($nombre);
 
@@ -116,11 +130,23 @@ try {
                 $stmtEmail = $conexion->prepare("SELECT id FROM odontologo WHERE lower(email) = lower(:email)");
                 $stmtEmail->execute([":email" => $email]);
 
+                $ocupanteCons = false;
+                if ($consultorio !== "") {
+                    $stmtCons = $conexion->prepare(
+                        "SELECT nombre FROM odontologo WHERE lower(trim(consultorio)) = lower(trim(:consultorio)) AND activo IS TRUE LIMIT 1"
+                    );
+                    $stmtCons->execute([":consultorio" => $consultorio]);
+                    $ocupanteCons = $stmtCons->fetchColumn();
+                }
+
                 if ($consulta->fetch()) {
                     $_SESSION["mensaje"] = "Ya existe un odontólogo con un nombre que genera el mismo slug.";
                     $_SESSION["tipo_mensaje"] = "error";
                 } elseif ($stmtEmail->fetch()) {
                     $_SESSION["mensaje"] = "Ya existe un odontólogo registrado con ese correo electrónico.";
+                    $_SESSION["tipo_mensaje"] = "error";
+                } elseif ($ocupanteCons) {
+                    $_SESSION["mensaje"] = "El consultorio {$consultorio} ya se encuentra ocupado por {$ocupanteCons} (RN-19). Elige un consultorio libre.";
                     $_SESSION["tipo_mensaje"] = "error";
                 } else {
 
@@ -149,11 +175,20 @@ try {
     } elseif ($accion === "actualizar") {
 
         $id = filter_var($_POST["id"] ?? null, FILTER_VALIDATE_INT);
-        $nombre = trim($_POST["nombre"] ?? "");
+        $nombre = formatearNombreOdontologoConTitulo(trim($_POST["nombre"] ?? ""));
         $especialidad = trim($_POST["especialidad"] ?? "");
         $consultorio = trim($_POST["consultorio"] ?? "");
         $email = trim($_POST["email"] ?? "");
         $activo = ($_POST["activo"] ?? "1") === "1";
+
+        $serviciosValidos = obtenerEspecialidadesOdontologia($conexion);
+        $especialidadCanon = "";
+        foreach ($serviciosValidos as $srvOpt) {
+            if (normalizarClaveCatalogo($srvOpt) === normalizarClaveCatalogo($especialidad)) {
+                $especialidadCanon = $srvOpt;
+                break;
+            }
+        }
 
         if ($id === false || $id === null || $id <= 0) {
             $_SESSION["mensaje"] = "Error: el ID del odontólogo no es válido.";
@@ -163,8 +198,8 @@ try {
             $_SESSION["tipo_mensaje"] = "error";
             header("Location: ../view/odontologo/editar_odontologo.php?id=" . $id);
             exit;
-        } elseif ($especialidad === "") {
-            $_SESSION["mensaje"] = "Error: la especialidad es obligatoria.";
+        } elseif ($especialidad === "" || $especialidadCanon === "") {
+            $_SESSION["mensaje"] = "Error: selecciona una especialidad válida correspondiente a uno de los servicios activos de la clínica (RN-21).";
             $_SESSION["tipo_mensaje"] = "error";
             header("Location: ../view/odontologo/editar_odontologo.php?id=" . $id);
             exit;
@@ -174,6 +209,7 @@ try {
             header("Location: ../view/odontologo/editar_odontologo.php?id=" . $id);
             exit;
         } else {
+            $especialidad = $especialidadCanon;
 
             $slug = generarSlug($nombre);
 
@@ -197,6 +233,15 @@ try {
                 );
                 $stmtEmail->execute([":email" => $email, ":id" => $id]);
 
+                $ocupanteCons = false;
+                if ($activo && $consultorio !== "") {
+                    $stmtCons = $conexion->prepare(
+                        "SELECT nombre FROM odontologo WHERE lower(trim(consultorio)) = lower(trim(:consultorio)) AND activo IS TRUE AND id <> :id LIMIT 1"
+                    );
+                    $stmtCons->execute([":consultorio" => $consultorio, ":id" => $id]);
+                    $ocupanteCons = $stmtCons->fetchColumn();
+                }
+
                 if ($consulta->fetch()) {
                     $_SESSION["mensaje"] = "Ya existe otro odontólogo con un nombre que genera el mismo slug.";
                     $_SESSION["tipo_mensaje"] = "error";
@@ -204,6 +249,11 @@ try {
                     exit;
                 } elseif ($stmtEmail->fetch()) {
                     $_SESSION["mensaje"] = "Ya existe otro odontólogo con ese correo electrónico.";
+                    $_SESSION["tipo_mensaje"] = "error";
+                    header("Location: ../view/odontologo/editar_odontologo.php?id=" . $id);
+                    exit;
+                } elseif ($ocupanteCons) {
+                    $_SESSION["mensaje"] = "El consultorio {$consultorio} ya está asignado a {$ocupanteCons} (RN-19). Selecciona un consultorio libre.";
                     $_SESSION["tipo_mensaje"] = "error";
                     header("Location: ../view/odontologo/editar_odontologo.php?id=" . $id);
                     exit;
@@ -276,7 +326,7 @@ try {
 
     if ($e->getCode() === "23503") {
         $_SESSION["mensaje"] =
-            "No se puede eliminar el odontólogo porque tiene citas asociadas. Puedes desactivarlo desde Editar.";
+            "No se puede eliminar el odontólogo porque tiene citas asociadas. Puedes desactivarlo desde Gestionar asignación en el panel de Consultorios.";
     } else {
         $_SESSION["mensaje"] =
             "No se pudo completar la operación. Verifica los datos y las restricciones de la base de datos.";

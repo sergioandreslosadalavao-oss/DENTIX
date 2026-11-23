@@ -2,23 +2,26 @@
 // index.php - Landing Page y Dashboard Principal con menús actualizados
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DENTIX | Clínica odontológica</title>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
-    
+
     <!-- FontAwesome para Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    
+
     <!-- HOJA DE ESTILOS DE LA LANDING -->
-    <link rel="stylesheet" href="assests/css/index.css?v=20261110-footer2">
+    <link rel="stylesheet" href="assets/css/index.css?v=20261121-sena">
 </head>
+
 <body>
 
     <!-- Barra de progreso de lectura superior -->
@@ -43,6 +46,7 @@
             <nav class="site-nav">
                 <a href="#modulos">Servicios</a>
                 <a href="#citas">Agendar cita</a>
+                <a href="#video-demo">Video Demo</a>
                 <a href="#manual-usuario" data-manual-open aria-haspopup="dialog" aria-controls="userManualModal">Manual</a>
             </nav>
 
@@ -50,14 +54,14 @@
             <div class="header__cta" style="display: flex; gap: 10px; align-items: center;">
                 <!-- Botón de Portal Médico (Odontólogos) -->
                 <a href="view/odontologo/login_odontologo.php" class="btn btn--ghost btn--small">
-                     <i class="fa-solid fa-user-doctor"></i> Odontólogos
+                    <i class="fa-solid fa-user-doctor"></i> Odontólogos
                 </a>
 
                 <!-- Botón de Administrador / Recepcionista -->
                 <a href="view/recepcionista/lista_recepcionista.php" class="btn btn--ghost btn--small">
-                     <i class="fa-solid fa-user-shield"></i> Administrador
+                    <i class="fa-solid fa-user-shield"></i> Administrador
                 </a>
-                
+
                 <!-- Acceso al portal del paciente -->
                 <a href="view/paciente/login_paciente.php" class="btn btn--primary btn--small">
                     <i class="fa-solid fa-right-to-bracket"></i> Iniciar sesión
@@ -97,6 +101,9 @@
                     <a href="view/paciente/form_paciente.php" class="btn btn--ghost btn--large">
                         <i class="fa-solid fa-user-plus"></i> Crear cuenta de paciente
                     </a>
+                    <a href="#video-demo" class="btn btn--ghost btn--large">
+                        <i class="fa-solid fa-circle-play"></i> Ver video demostrativo
+                    </a>
                 </div>
             </div>
 
@@ -108,12 +115,22 @@
                         </div>
                         <span class="hero-card__time">Cuidado odontológico</span>
                     </div>
-                    <div class="hero-card__art">
-                        <div class="hero-card__halo"></div>
-                        <img src="assests/img/proyecto-placeholder.svg" alt="Cuidado de la salud oral en DENTIX" class="hero-card__tooth" style="width: 120px;">
-                        <span class="sparkle sparkle--1"></span>
-                        <span class="sparkle sparkle--2"></span>
-                        <span class="sparkle sparkle--3"></span>
+                    <div class="hero-card__art hero-card__art--video">
+                        <button type="button" class="hero-video-trigger" id="heroVideoTrigger" aria-label="Reproducir comercial oficial DENTIX">
+                            <video id="heroPreviewVideo" class="hero-video-trigger__preview" autoplay muted loop playsinline preload="auto">
+                                <source src="assets/video/comercial_dentix.mp4?v=20261121-com" type="video/mp4">
+                            </video>
+                            <span class="hero-video-trigger__scrim" aria-hidden="true"></span>
+                            <span class="hero-video-trigger__play" aria-hidden="true">
+                                <i class="fa-solid fa-play"></i>
+                            </span>
+                            <span class="hero-video-trigger__pill">
+                                <i class="fa-solid fa-film" aria-hidden="true"></i> Ver comercial · 01:00
+                            </span>
+                            <span class="hero-video-trigger__expand" aria-hidden="true" title="Ver en pantalla completa">
+                                <i class="fa-solid fa-expand"></i>
+                            </span>
+                        </button>
                     </div>
                     <div class="hero-card__info">
                         <div>
@@ -205,7 +222,7 @@
                     </div>
                 </article>
             </div>
-            
+
             <!-- Módulo de Citas -->
             <div class="appointment-cta-wrap" id="citas">
                 <article class="appointment-cta">
@@ -233,6 +250,61 @@
                     </div>
                 </article>
             </div>
+
+            <!-- Sección Oficial de Video Demostrativo Integrado en la Web (Criterio 9) -->
+            <div class="video-showcase-wrap" id="video-demo">
+                <div class="section-head section-head--center">
+                    <div class="eyebrow"><i class="fa-solid fa-film" aria-hidden="true"></i> Recorrido Audiovisual del Sistema</div>
+                    <h2>Conoce DENTIX <em>en acción</em></h2>
+                    <p>Conoce la explicación completa de los aprendices SENA creadores del software y el recorrido por los 3 portales.</p>
+                </div>
+
+                <div class="video-showcase">
+                    <div class="video-showcase__stage">
+                        <video id="dentixDemoVideo" class="video-showcase__player" controls preload="metadata" playsinline>
+                            <source src="assets/video/demo_dentix.mp4?v=20261121-sena" type="video/mp4">
+                            Tu navegador no soporta la reproducción de video HTML5. Puedes descargar el archivo en assets/video/demo_dentix.mp4.
+                        </video>
+                    </div>
+
+                    <div class="video-showcase__info">
+                        <span class="video-showcase__badge">
+                            <i class="fa-solid fa-circle-play" aria-hidden="true"></i> Presentación Aprendices SENA · MP4
+                        </span>
+                        <h3 class="video-showcase__title">Experiencia clínica completa</h3>
+
+                        <ul class="video-showcase__list">
+                            <li>
+                                <span class="video-showcase__icon" aria-hidden="true"><i class="fa-solid fa-hospital-user"></i></span>
+                                <div class="video-showcase__item-text">
+                                    <strong>Portal del Paciente</strong>
+                                    <span>Registro bajo Ley 1581, edición de perfil y solicitud autónoma de citas.</span>
+                                </div>
+                            </li>
+                            <li>
+                                <span class="video-showcase__icon" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
+                                <div class="video-showcase__item-text">
+                                    <strong>Panel de Recepción</strong>
+                                    <span>Direccionamiento de citas, consultorios dinámicos y reportes en Excel y PDF.</span>
+                                </div>
+                            </li>
+                            <li>
+                                <span class="video-showcase__icon" aria-hidden="true"><i class="fa-solid fa-user-doctor"></i></span>
+                                <div class="video-showcase__item-text">
+                                    <strong>Panel del Odontólogo</strong>
+                                    <span>Agenda del especialista, alertas médicas de alergias y cierre clínico.</span>
+                                </div>
+                            </li>
+                        </ul>
+
+                        <div class="video-showcase__actions">
+                            <a href="assets/video/demo_dentix.mp4?v=20261121-sena" download="DENTIX_Video_Demostrativo.mp4" class="btn btn--primary video-showcase__download">
+                                <i class="fa-solid fa-download" aria-hidden="true"></i> Descargar Video (MP4)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -249,25 +321,7 @@
                     </div>
                 </a>
 
-                <div class="mega-footer__controls" role="group" aria-label="Información de sede, idioma y tarifas">
-                    <label class="mega-footer__pill mega-footer__pill--lang" for="dentixLangSelect" data-i18n-ignore="true">
-                        <i class="fa-solid fa-globe" aria-hidden="true"></i>
-                        <select id="dentixLangSelect" class="mega-footer__lang-select" aria-label="Idioma / Language">
-                            <option value="es">Español · ES</option>
-                            <option value="en">English · EN</option>
-                        </select>
-                        <i class="fa-solid fa-sort mega-footer__pill-caret" aria-hidden="true"></i>
-                    </label>
-
-                    <label class="mega-footer__pill mega-footer__pill--currency" for="dentixCurrencySelect" data-i18n-ignore="true">
-                        <span class="mega-footer__pill-tag" id="dentixCurrencyTag">COP</span>
-                        <select id="dentixCurrencySelect" class="mega-footer__lang-select" aria-label="Moneda / Currency">
-                            <option value="COP">Peso colombiano (COP)</option>
-                            <option value="USD">Dollar (USD)</option>
-                        </select>
-                        <i class="fa-solid fa-sort mega-footer__pill-caret" aria-hidden="true"></i>
-                    </label>
-
+                <div class="mega-footer__controls" role="group" aria-label="Estado y horario de atención de la sede">
                     <button type="button" class="mega-footer__pill mega-footer__pill--live" id="footerLiveScheduleBtn" data-footer-pill="horario" aria-expanded="false">
                         <span class="mega-footer__live-dot" aria-hidden="true"></span>
                         <span id="footerLiveScheduleText">Colombia · 08:00 a 19:30</span>
@@ -499,8 +553,8 @@
                         <article class="manual-guide-item">
                             <div class="manual-guide-item__icon"><i class="fa-solid fa-id-card" aria-hidden="true"></i></div>
                             <div class="manual-guide-item__content">
-                                <h5>1. Registro por primera vez</h5>
-                                <p>Dirígete a <strong>Crear cuenta de paciente</strong>, completa tus datos (nombre en formato propio, número de cédula, fecha de nacimiento, teléfono, correo, alergias médicas y contraseña de 8 a 72 caracteres) y despliega los 5 puntos de <strong>Términos y Condiciones</strong> para activar tu cuenta.</p>
+                                <h5>1. Registro por primera vez (Titular — Ley 1581)</h5>
+                                <p>Dirígete a <strong>Crear cuenta de paciente</strong>, completa tus datos (nombre en formato propio con soporte de conectores como <em>de, del, la</em> o apellidos compuestos, número de cédula, fecha de nacimiento, teléfono, correo, alergias médicas y contraseña de 8 a 72 caracteres) y despliega los 5 puntos de <strong>Términos y Condiciones</strong> para activar tu cuenta.</p>
                             </div>
                         </article>
 
@@ -508,15 +562,15 @@
                             <div class="manual-guide-item__icon"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i></div>
                             <div class="manual-guide-item__content">
                                 <h5>2. Cómo agendar una cita nueva</h5>
-                                <p>Dentro de tu portal, haz clic en <strong>Solicitar nueva cita</strong>. Elige el tratamiento odontológico, selecciona la fecha deseada, escoge un horario en intervalos de 30 minutos (por ejemplo <code>08:00</code>, <code>08:30</code>, <code>09:00</code>) y escribe brevemente el motivo de tu consulta.</p>
+                                <p>Dentro de tu portal, haz clic en <strong>Solicitar nueva cita</strong>. Elige el tratamiento odontológico, selecciona la fecha deseada (si es para hoy, solo horas futuras del día), escoge un horario en intervalos de 30 minutos (por ejemplo <code>08:00</code>, <code>08:30</code>, <code>09:00</code>) y escribe brevemente el motivo de tu consulta.</p>
                             </div>
                         </article>
 
                         <article class="manual-guide-item">
                             <div class="manual-guide-item__icon"><i class="fa-solid fa-user-pen" aria-hidden="true"></i></div>
                             <div class="manual-guide-item__content">
-                                <h5>3. Actualizar mis datos o alergias</h5>
-                                <p>En tu portal selecciona <strong>Editar perfil</strong>. Allí podrás mantener actualizados tu teléfono, correo, alergias médicas o cambiar tu contraseña cuando lo necesites.</p>
+                                <h5>3. Editar mis datos personales y alergias en Mi Perfil</h5>
+                                <p>En tu portal entra a <strong>Mi Perfil</strong> y pulsa <strong>Editar mis datos</strong> (o <strong>Editar alergias</strong>). Podrás actualizar tu nombre, teléfono, correo, fecha de nacimiento, alergias médicas y contraseña opcional; tus cambios se sincronizan automáticamente en vivo en el panel de recepción y en la agenda del odontólogo.</p>
                             </div>
                         </article>
                     </div>
@@ -526,7 +580,7 @@
                         <div>
                             <strong>Reglas importantes al agendar tu cita:</strong>
                             <ul>
-                                <li>El horario de atención clínica es de <strong>08:00 a. m. a 07:30 p. m.</strong> en bloques exactos de 30 minutos.</li>
+                                <li>El horario de atención clínica es de <strong>08:00 a. m. a 07:30 p. m.</strong> en bloques exactos de 30 minutos (si agendas para hoy, solo se permiten horas posteriores a la hora actual).</li>
                                 <li>Por seguridad y organización, cada paciente puede tener máximo <strong>1 cita activa por día</strong>.</li>
                                 <li>Entre dos citas de un mismo paciente deben transcurrir al menos <strong>4 días completos</strong> de diferencia (RN-07).</li>
                             </ul>
@@ -580,26 +634,26 @@
                     <div class="manual-steps-grid">
                         <article class="manual-step-card">
                             <div class="manual-step-card__icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></div>
-                            <h5>Módulo de Citas</h5>
-                            <p>En <strong>Catálogo de Citas</strong> asigna un odontólogo disponible a cada solicitud pendiente y pulsa <strong>Confirmar</strong>. También puedes crear una <strong>+ Nueva Cita</strong>, <strong>Editar</strong> fecha/hora o <strong>Cancelar</strong> indicando el motivo obligatorio.</p>
+                            <h5>Módulo de Citas (Direccionamiento)</h5>
+                            <p>En <strong>Catálogo de Citas</strong> visualiza las solicitudes agendadas por los pacientes, direcciona cada cita asignando un odontólogo cuya especialidad coincida con el servicio solicitado (RN-21) y pulsa <strong>Confirmar</strong>. También puedes registrar <strong>No asistió</strong> o <strong>Cancelar</strong> indicando el motivo obligatorio (sin crear ni editar citas manualmente).</p>
                         </article>
 
                         <article class="manual-step-card">
                             <div class="manual-step-card__icon"><i class="fa-solid fa-users-gear" aria-hidden="true"></i></div>
                             <h5>Pacientes y Odontólogos</h5>
-                            <p>Registra nuevos pacientes u odontólogos, actualiza sus datos de contacto o consultorio y activa/inactiva profesionales cuando no estén disponibles en agenda.</p>
+                            <p>En <strong>Pacientes</strong> consulta, edita o elimina expedientes sin citas activas (el registro es exclusivo del titular por Ley 1581). En <strong>Odontólogos</strong> administra especialistas y observa su estado real (<em>Ocupado / En Cita</em> hoy vs. <em>Activo / Disponible</em>).</p>
                         </article>
 
                         <article class="manual-step-card">
                             <div class="manual-step-card__icon"><i class="fa-solid fa-tooth" aria-hidden="true"></i></div>
                             <h5>Catálogo de Servicios</h5>
-                            <p>En <strong>Servicios</strong> administra los tratamientos odontológicos, su descripción pública, duración mínima (desde 15 minutos) y tarifas actualizadas.</p>
+                            <p>En <strong>Servicios</strong> administra los tratamientos odontológicos, su descripción pública, duración mínima (desde 15 minutos) y tarifas actualizadas en COP con equivalente automático en USD.</p>
                         </article>
 
                         <article class="manual-step-card">
                             <div class="manual-step-card__icon"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></div>
-                            <h5>Módulo de Reportes</h5>
-                            <p>Debajo de Citas encontrarás <strong>Reportes</strong>: filtra por fechas y visualiza el paciente con más citas, el servicio más solicitado, el odontólogo que más atiende y los horarios de mayor demanda.</p>
+                            <h5>Módulo de Reportes (PDF y Excel)</h5>
+                            <p>En <strong>Reportes</strong> filtra por fechas, revisa los 4 KPIs (con separación de <em>Canceladas</em> vs. <em>No-show</em>) y descarga o imprime el informe completo o cada sección individualmente (Resumen KPIs, Servicios, Odontólogos, Pacientes y Horarios) en <strong>PDF</strong> o <strong>Excel (.xlsx)</strong> con diseño corporativo.</p>
                         </article>
                     </div>
                 </section>
@@ -650,6 +704,12 @@
                     <i class="fa-solid fa-shield-heart" aria-hidden="true"></i> Guía rápida integrada en DENTIX
                 </span>
                 <div class="manual-modal__footer-actions">
+                    <a href="#video-demo" class="btn btn--ghost btn--small" data-manual-close>
+                        <i class="fa-solid fa-circle-play" aria-hidden="true"></i> Ver Video Demo
+                    </a>
+                    <a href="manuales/MANUAL_USUARIO.docx" download class="btn btn--ghost btn--small">
+                        <i class="fa-solid fa-file-word" aria-hidden="true"></i> Descargar Manual (.docx)
+                    </a>
                     <a href="view/servicio/catalogo_publico.php" class="btn btn--ghost btn--small">
                         <i class="fa-solid fa-notes-medical" aria-hidden="true"></i> Ver tratamientos
                     </a>
@@ -664,9 +724,37 @@
     <!-- GSAP Animations Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    
+
+    <!-- Modal Cinematográfico a Pantalla Completa para el Video del Hero -->
+    <div class="dentix-cinema-modal" id="dentixHeroVideoModal" role="dialog" aria-modal="true" aria-labelledby="dentixCinemaTitle" hidden>
+        <div class="dentix-cinema-modal__backdrop" data-close-cinema></div>
+        <div class="dentix-cinema-modal__dialog">
+            <div class="dentix-cinema-modal__header">
+                <div class="dentix-cinema-modal__brand">
+                    <span class="dentix-cinema-modal__dot" aria-hidden="true"></span>
+                    <strong id="dentixCinemaTitle">Video Oficial DENTIX · HD</strong>
+                </div>
+                <div class="dentix-cinema-modal__head-actions">
+                    <a href="assets/video/comercial_dentix.mp4?v=20261121-com" download="DENTIX_Comercial_Oficial.mp4" class="dentix-cinema-modal__dl">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i> Descargar Video (MP4)
+                    </a>
+                    <button type="button" class="dentix-cinema-modal__close" id="dentixCinemaClose" aria-label="Cerrar reproductor">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="dentix-cinema-modal__stage">
+                <video id="dentixCinemaVideo" class="dentix-cinema-modal__video" controls playsinline preload="metadata">
+                    <source src="assets/video/comercial_dentix.mp4?v=20261121-com" type="video/mp4">
+                    Tu navegador no soporta la reproducción de video HTML5.
+                </video>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT DE ANIMACIONES Y TRADUCCIÓN GLOBAL -->
-    <script src="assests/js/index-animations.js?v=20261110-footer2"></script>
-    <script src="assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="assets/js/index-animations.js?v=20261121-sena"></script>
+    <script src="assets/js/dentix-i18n.js?v=20261121-sena"></script>
 </body>
+
 </html>

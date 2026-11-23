@@ -1,8 +1,12 @@
 <?php
-// form_cita.php - Registro de Citas con diseño administrativo unificado
+// form_cita.php - Deshabilitado para Recepción (RF-038: agendamiento exclusivo por el paciente titular)
 require_once __DIR__ . '/../../app/recepcionista_auth.php';
 requerir_recepcionista('../recepcionista/lista_recepcionista.php');
-require_once __DIR__ . '/../../config/database.php';
+
+$_SESSION['mensaje'] = 'Por política de agendamiento (RF-038), solo el paciente puede solicitar nuevas citas desde su portal. Recepción gestiona el direccionamiento a odontólogos, confirmación, inasistencia o cancelación con motivo.';
+$_SESSION['tipo_mensaje'] = 'error';
+header('Location: lista_citas.php');
+exit();
 
 $mensaje = $_SESSION['mensaje'] ?? null;
 $tipo_mensaje = $_SESSION['tipo_mensaje'] ?? 'exito';
@@ -19,9 +23,10 @@ try {
 $csrfToken = token_csrf_recepcionista();
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agendar Nueva Cita - DENTIX</title>
     
@@ -31,8 +36,8 @@ $csrfToken = token_csrf_recepcionista();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     
-    <link rel="stylesheet" href="../../assests/css/admin.css?v=20261103-2">
-    <link rel="stylesheet" href="../../assests/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css?v=20261103-2">
+    <link rel="stylesheet" href="../../assets/css/index.css">
 </head>
 <body class="admin-body">
 
@@ -160,7 +165,32 @@ $csrfToken = token_csrf_recepcionista();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="../../assests/js/admin-animations.js"></script>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="../../assets/js/admin-animations.js"></script>
+    <script>
+        (() => {
+            const fechaInput = document.querySelector('input[name="fecha"]');
+            const horaInput = document.querySelector('input[name="hora"]');
+            if (!fechaInput || !horaInput) return;
+
+            const validarHoraHoy = () => {
+                const ahora = new Date();
+                const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+                if (fechaInput.value === hoyStr) {
+                    const horaActual = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+                    if (horaInput.value && horaInput.value <= horaActual) {
+                        horaInput.setCustomValidity(`Para citas de hoy debes elegir una hora posterior a la actual (${horaActual}).`);
+                    } else {
+                        horaInput.setCustomValidity('');
+                    }
+                } else {
+                    horaInput.setCustomValidity('');
+                }
+            };
+
+            fechaInput.addEventListener('change', validarHoraHoy);
+            horaInput.addEventListener('input', validarHoraHoy);
+        })();
+    </script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>

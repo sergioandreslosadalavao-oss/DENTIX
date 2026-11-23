@@ -4,7 +4,11 @@ require_once __DIR__ . '/../../app/paciente_auth.php';
 iniciar_sesion_paciente();
 require_once __DIR__ . '/../../config/database.php';
 
-$modoAdmin = (($_GET['desde'] ?? $_POST['desde'] ?? '') === 'admin') && isset($_SESSION['recepcionista_id']);
+if ((($_GET['desde'] ?? $_POST['desde'] ?? '') === 'admin')) {
+    header('Location: lista_pacientes.php');
+    exit;
+}
+$modoAdmin = false;
 
 if (!$modoAdmin && paciente_autenticado()) {
     header('Location: perfil_paciente.php');
@@ -74,13 +78,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         && $fechaNac <= date('Y-m-d')
         && $fechaNac >= '1900-01-01';
 
-    // Validar que cada palabra del nombre empiece con mayúscula seguida de minúsculas (ej. Juan Steven)
-    $nombreFormatoValido = preg_match('/^[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?: [A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*$/u', $nombre) === 1;
+    // Normalizar espacios múltiples y conectores comunes en minúscula (de, del, la, las, los, y)
+    $nombre = preg_replace('/\s+/u', ' ', $nombre) ?? $nombre;
+    $nombre = preg_replace_callback(
+        '/(?<=\s)(De|Del|La|Las|Los|Y|Da|Do|Dos)(?=\s)/u',
+        static fn(array $m): string => mb_strtolower($m[1], 'UTF-8'),
+        $nombre
+    ) ?? $nombre;
+    $nombreVal = $nombre;
+
+    // Validar que cada palabra principal inicie con mayúscula permitiendo conectores (de, del, la, las, los) y apellidos como McDonald o D'Angelo (RF-031)
+    $patronPalabra = "(?:Mc|Mac|[A-ZÁÉÍÓÚÜÑ]['-])?[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:-[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*";
+    $nombreFormatoValido = preg_match(
+        '/^' . $patronPalabra . '(?: (?:(?:de|del|la|las|los|y|da|do|dos) )*' . $patronPalabra . ')*$/u',
+        $nombre
+    ) === 1;
 
     if (!validar_csrf_paciente()) {
         $error = 'La sesión del formulario venció. Recarga la página e inténtalo de nuevo.';
     } elseif (!$nombreFormatoValido) {
-        $error = 'Cada palabra del nombre debe empezar con mayúscula seguida de minúsculas (ejemplo: Juan Steven). No se permite todo en mayúsculas ni todo en minúsculas.';
+        $error = 'Cada palabra principal del nombre debe empezar con mayúscula seguida de minúsculas (ej. Juan Steven, María de la Cruz).';
     } elseif (
         $nombre === ''
         || mb_strlen($nombre, 'UTF-8') > 60
@@ -105,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $check = $conexion->prepare(
-                'SELECT id, nombre, telefono, email, password_hash
+                'SELECT id, nombre, telefono, email, fecha_nac, alergias, password_hash
                  FROM paciente
                  WHERE cedula = ?
                  LIMIT 1'
@@ -116,21 +133,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
             if ($pacienteExistente && !empty($pacienteExistente['password_hash'])) {
-                $error = 'Ya existe una cuenta con esa cédula. Inicia sesión.';
+                $error = 'No se pudo completar el registro con los datos suministrados. Si ya tienes cuenta activa, inicia sesión.';
             } elseif ($pacienteExistente) {
+                $fechaNacCoincide = empty($pacienteExistente['fecha_nac'])
+                    || $pacienteExistente['fecha_nac'] === $fechaNac;
+
                 $datosCoinciden = hash_equals((string) $pacienteExistente['telefono'], $telefono)
                     && strtolower((string) $pacienteExistente['email']) === strtolower($correo)
-                    && mb_strtolower((string) $pacienteExistente['nombre'], 'UTF-8') === mb_strtolower($nombre, 'UTF-8');
+                    && mb_strtolower((string) $pacienteExistente['nombre'], 'UTF-8') === mb_strtolower($nombre, 'UTF-8')
+                    && $fechaNacCoincide;
 
                 if (!$datosCoinciden) {
-                    $error = 'No pudimos verificar tus datos. Revisa el teléfono y correo registrados o comunícate con recepción.';
+                    $error = 'No pudimos verificar tus datos de titularidad. Revisa nombre, teléfono, correo y fecha de nacimiento registrados en recepción.';
                 } else {
+                    // Preservar alergias clínicas previas registradas por recepción sin sobrescribirlas (RF-002)
+                    $alergiaPrevia = trim((string) ($pacienteExistente['alergias'] ?? ''));
+                    $esPreviaVacia = ($alergiaPrevia === '' || in_array(mb_strtolower($alergiaPrevia, 'UTF-8'), ['ninguna', 'ninguna registrada'], true));
+                    $esNuevaVacia = ($alergiasFinal === '' || in_array(mb_strtolower($alergiasFinal, 'UTF-8'), ['ninguna', 'ninguna registrada'], true));
+
+                    if ($esPreviaVacia) {
+                        $alergiasConservar = $alergiasFinal;
+                    } elseif ($esNuevaVacia || mb_strtolower($alergiaPrevia, 'UTF-8') === mb_strtolower($alergiasFinal, 'UTF-8')) {
+                        $alergiasConservar = $alergiaPrevia;
+                    } else {
+                        $alergiasConservar = mb_substr($alergiaPrevia . ' | ' . $alergiasFinal, 0, 120, 'UTF-8');
+                    }
+
                     $stmt = $conexion->prepare(
                         'UPDATE paciente
-                         SET password_hash = ?, fecha_nac = ?, alergias = ?
+                         SET password_hash = ?,
+                             fecha_nac = COALESCE(fecha_nac, ?),
+                             alergias = ?
                          WHERE id = ? AND password_hash IS NULL'
                     );
-                    $stmt->execute([$passwordHash, $fechaNac, $alergiasFinal, $pacienteExistente['id']]);
+                    $stmt->execute([$passwordHash, $fechaNac, $alergiasConservar, $pacienteExistente['id']]);
                     if ($stmt->rowCount() === 1) {
                         $pacienteId = $pacienteExistente['id'];
                     } else {
@@ -138,6 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } else {
+                if (preg_match('/( de | del | la | las | los | y | da | do | dos |Mc|Mac|[\'-])/u', $nombre)) {
+                    $conexion->exec("
+                        ALTER TABLE paciente DROP CONSTRAINT IF EXISTS ck_paciente_nombre_formato;
+                        ALTER TABLE paciente ADD CONSTRAINT ck_paciente_nombre_formato CHECK (
+                            nombre ~ '^((Mc|Mac|[A-ZÁÉÍÓÚÜÑ][''-])?[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(-[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*)( ((de|del|la|las|los|y|da|do|dos) )*((Mc|Mac|[A-ZÁÉÍÓÚÜÑ][''-])?[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(-[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*))*$'
+                        );
+                    ");
+                }
                 $stmt = $conexion->prepare(
                     'INSERT INTO paciente (nombre, cedula, telefono, email, fecha_nac, alergias, password_hash)
                      VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -169,9 +213,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Nuevo Paciente - DENTIX</title>
 
@@ -181,9 +226,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-    <link rel="stylesheet" href="../../assests/css/admin.css">
-    <link rel="stylesheet" href="../../assests/css/index.css">
-    <link rel="stylesheet" href="../../assests/css/paciente.css?v=20261110-terms2">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/paciente.css?v=20261110-terms2">
     <style>
         .patient-register-card {
             width: min(100%, 600px);
@@ -1100,7 +1145,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const passInput = document.getElementById('password');
                 const passConfInput = document.getElementById('password_confirmacion');
 
-                const nombre = (nombreInput.value || '').trim();
+                const nombre = (nombreInput.value || '')
+                    .trim()
+                    .replace(/\s+/g, ' ')
+                    .replace(/(?<=\s)(De|Del|La|Las|Los|Y|Da|Do|Dos)(?=\s)/g, (m) => m.toLowerCase());
+                nombreInput.value = nombre;
                 const cedula = (cedulaInput.value || '').trim();
                 const fechaNac = (fechaNacInput.value || '').trim();
                 const telefono = (telefonoInput.value || '').trim();
@@ -1108,7 +1157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const pass = passInput.value || '';
                 const passConf = passConfInput.value || '';
 
-                const regexNombreTitulo = /^[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?: [A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*$/u;
+                const regexNombreTitulo = /^(?:Mc|Mac|[A-ZÁÉÍÓÚÜÑ]['-])?[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:-[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*(?: (?:(?:de|del|la|las|los|y|da|do|dos) )*(?:Mc|Mac|[A-ZÁÉÍÓÚÜÑ]['-])?[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:-[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*)*$/u;
                 const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
                 if (!nombre) {
@@ -1116,7 +1165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     return;
                 }
                 if (!regexNombreTitulo.test(nombre)) {
-                    showClientError('Cada palabra del nombre debe empezar con mayúscula seguida de minúsculas (ejemplo: Juan Steven). No se permite todo en mayúsculas ni en minúsculas.', nombreInput);
+                    showClientError('Cada palabra principal del nombre debe empezar con mayúscula seguida de minúsculas (ejemplo: Juan Steven o María de la Cruz).', nombreInput);
                     return;
                 }
                 if (!cedula) {
@@ -1153,6 +1202,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         })();
     </script>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>

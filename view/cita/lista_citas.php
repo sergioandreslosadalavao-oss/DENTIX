@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../app/recepcionista_auth.php';
 requerir_recepcionista('../recepcionista/lista_recepcionista.php');
 require_once "../../config/database.php";
+require_once __DIR__ . '/../../app/odontologo_catalogos.php';
 
 $mensaje = "";
 $error = "";
@@ -16,96 +17,68 @@ if (isset($_SESSION['mensaje'])) {
     unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
 }
 
-// Asignar un odontólogo confirma la solicitud de cita.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_cita'])) {
-    $citaId = filter_var($_POST['cita_id'] ?? null, FILTER_VALIDATE_INT);
-    $odontologoId = filter_var($_POST['odontologo_id'] ?? null, FILTER_VALIDATE_INT);
-
-    if (!validar_csrf_recepcionista()) {
-        $error = "La sesión del formulario venció. Recarga la página e inténtalo de nuevo.";
-    } elseif ($citaId === false || $citaId <= 0 || $odontologoId === false || $odontologoId <= 0) {
-        $error = "Selecciona un odontólogo válido para confirmar la cita.";
-    } else {
-        try {
-            $stmt = $conexion->prepare("SELECT id FROM odontologo WHERE id = ? AND activo IS TRUE");
-            $stmt->execute([$odontologoId]);
-
-            if (!$stmt->fetchColumn()) {
-                $error = "El odontólogo seleccionado no está disponible.";
-            } else {
-                // Verificar la fecha de la cita para validar que el odontólogo no tenga ya otra cita ese mismo día
-                $stmtFecha = $conexion->prepare("SELECT fecha FROM cita WHERE id = ?");
-                $stmtFecha->execute([$citaId]);
-                $fechaCita = $stmtFecha->fetchColumn();
-
-                $stmtConflicto = $conexion->prepare(
-                    "SELECT id FROM cita 
-                     WHERE odontologo_id = ? 
-                       AND fecha = ? 
-                       AND id <> ? 
-                       AND estado IN ('confirmada', 'completada')
-                     LIMIT 1"
-                );
-                $stmtConflicto->execute([$odontologoId, $fechaCita, $citaId]);
-
-                if ($stmtConflicto->fetchColumn()) {
-                    $error = "El odontólogo seleccionado ya tiene una cita asignada para el día {$fechaCita}. Cada odontólogo solo puede atender máximo 1 cita por día.";
-                } else {
-                    $stmt = $conexion->prepare(
-                        "UPDATE cita
-                         SET odontologo_id = ?, estado = 'confirmada', recepcionista_id = ?
-                         WHERE id = ? AND estado = 'pendiente'
-                         RETURNING id"
-                    );
-                    $stmt->execute([$odontologoId, $_SESSION['recepcionista_id'], $citaId]);
-
-                    if ($stmt->fetchColumn()) {
-                        $mensaje = "La cita fue confirmada y el odontólogo quedó asignado.";
-                    } else {
-                        $error = "La cita ya no está pendiente. Actualiza la página para ver su estado.";
-                    }
-                }
-            }
-        } catch (PDOException $e) {
-            error_log("Error al confirmar y asignar una cita: " . $e->getMessage());
-            $error = "No se pudo confirmar la cita. Verifica que el odontólogo no tenga otra cita en ese horario.";
-        }
-    }
+// Cualquier petición POST se delega al controlador de lógica de negocio (separación estricta de capas)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require __DIR__ . '/../../app/logica_cita.php';
+    exit();
 }
 
-// Solicitudes que todavía requieren confirmación y asignación.
+// Solicitudes que todavía requieren confirmación y asignación (consultadas desde la vista optimizada v_agenda_dia).
 try {
-    $stmt = $conexion->query(
-        "SELECT c.id, c.fecha, c.hora, p.nombre AS paciente_nombre, p.cedula,
-                s.nombre AS servicio_nombre, o.id AS odontologo_id
-         FROM cita c
-         JOIN paciente p ON p.id = c.paciente_id
-         JOIN servicio s ON s.id = c.servicio_id
-         LEFT JOIN odontologo o ON o.id = c.odontologo_id
-         WHERE c.estado = 'pendiente'
-         ORDER BY c.fecha, c.hora, c.id"
-    );
-    $citasPendientes = $stmt->fetchAll();
+    try {
+        $stmt = $conexion->query(
+            "SELECT cita_id AS id, fecha, hora, paciente AS paciente_nombre, cedula,
+                    servicio AS servicio_nombre, odontologo_id
+             FROM v_agenda_dia
+             WHERE estado = 'pendiente'
+             ORDER BY fecha, hora, cita_id"
+        );
+        $citasPendientes = $stmt->fetchAll();
+    } catch (PDOException $eVistaPend) {
+        $stmt = $conexion->query(
+            "SELECT c.id, c.fecha, c.hora, p.nombre AS paciente_nombre, p.cedula,
+                    s.nombre AS servicio_nombre, o.id AS odontologo_id
+             FROM cita c
+             JOIN paciente p ON p.id = c.paciente_id
+             JOIN servicio s ON s.id = c.servicio_id
+             LEFT JOIN odontologo o ON o.id = c.odontologo_id
+             WHERE c.estado = 'pendiente'
+             ORDER BY c.fecha, c.hora, c.id"
+        );
+        $citasPendientes = $stmt->fetchAll();
+    }
 } catch (PDOException $e) {
     $citasPendientes = [];
     $error = "Error al cargar las solicitudes pendientes.";
     error_log("Error al cargar citas pendientes: " . $e->getMessage());
 }
 
-// Citas confirmadas por recepción, mostradas debajo de las solicitudes pendientes.
+// Citas confirmadas por recepción, consultadas desde la vista v_agenda_dia.
 try {
-    $stmt = $conexion->query(
-        "SELECT c.id, c.fecha, c.hora, p.nombre AS paciente_nombre, p.cedula,
-                s.nombre AS servicio_nombre, o.nombre AS odontologo_nombre,
-                o.especialidad AS odontologo_especialidad
-         FROM cita c
-         JOIN paciente p ON p.id = c.paciente_id
-         JOIN servicio s ON s.id = c.servicio_id
-         JOIN odontologo o ON o.id = c.odontologo_id
-         WHERE c.estado = 'confirmada' AND c.odontologo_id IS NOT NULL
-         ORDER BY c.fecha DESC, c.hora DESC, c.id DESC"
-    );
-    $citasConfirmadas = $stmt->fetchAll();
+    try {
+        $stmt = $conexion->query(
+            "SELECT cita_id AS id, fecha, hora, paciente AS paciente_nombre, cedula,
+                    servicio AS servicio_nombre, odontologo AS odontologo_nombre,
+                    odontologo_especialidad
+             FROM v_agenda_dia
+             WHERE estado = 'confirmada' AND odontologo_id IS NOT NULL
+             ORDER BY fecha DESC, hora DESC, cita_id DESC"
+        );
+        $citasConfirmadas = $stmt->fetchAll();
+    } catch (PDOException $eVistaConf) {
+        $stmt = $conexion->query(
+            "SELECT c.id, c.fecha, c.hora, p.nombre AS paciente_nombre, p.cedula,
+                    s.nombre AS servicio_nombre, o.nombre AS odontologo_nombre,
+                    o.especialidad AS odontologo_especialidad
+             FROM cita c
+             JOIN paciente p ON p.id = c.paciente_id
+             JOIN servicio s ON s.id = c.servicio_id
+             JOIN odontologo o ON o.id = c.odontologo_id
+             WHERE c.estado = 'confirmada' AND c.odontologo_id IS NOT NULL
+             ORDER BY c.fecha DESC, c.hora DESC, c.id DESC"
+        );
+        $citasConfirmadas = $stmt->fetchAll();
+    }
 } catch (PDOException $e) {
     $citasConfirmadas = [];
     $error = "Error al cargar las citas confirmadas.";
@@ -128,18 +101,19 @@ try {
 $csrfToken = token_csrf_recepcionista();
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citas - SCO</title>
+    <title>Citas - DENTIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="../../assests/css/admin.css?v=20261103-2">
-    <link rel="stylesheet" href="../../assests/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css?v=20261103-2">
+    <link rel="stylesheet" href="../../assets/css/index.css">
 </head>
 <body class="admin-body" data-accent="citas">
     <div class="page-progress"><span class="page-progress__bar"></span></div>
@@ -191,10 +165,12 @@ $csrfToken = token_csrf_recepcionista();
                     <div class="panel__head">
                         <div>
                             <h3 class="panel__title"><i class="fa-solid fa-calendar-check"></i> Catálogo de Citas</h3>
-                            <p class="panel__subtitle">Solicitudes pendientes de confirmación y asignación de odontólogo.</p>
+                            <p class="panel__subtitle">Direccionamiento de solicitudes pendientes y asignación de odontólogo disponible.</p>
                         </div>
                         <div class="panel__tools">
-                            <a href="form_cita.php" class="btn btn--primary btn--sm"><i class="fa-solid fa-plus"></i> Nueva Cita</a>
+                            <span class="badge bg-teal bg-opacity-10 text-teal px-3 py-2 rounded-pill fw-semibold" style="color: #0a7a70; background: #e6f9f3; font-size: 0.75rem;">
+                                <i class="fa-solid fa-user-check me-1"></i> Agendamiento exclusivo por el paciente
+                            </span>
                         </div>
                     </div>
 
@@ -224,28 +200,46 @@ $csrfToken = token_csrf_recepcionista();
                                                 <div class="text-muted small"><i class="fa-solid fa-clock me-1"></i> <?php echo htmlspecialchars(substr((string) $cita['hora'], 0, 5), ENT_QUOTES, 'UTF-8'); ?></div>
                                             </td>
                                             <td data-label="Odontólogo">
-                                                <form action="lista_citas.php" method="POST" id="form-cita-<?php echo (int) $cita['id']; ?>" style="margin: 0;">
+                                                <?php
+                                                $servicioSolicitadoCita = trim((string) ($cita['servicio_nombre'] ?? ''));
+                                                $odontologosCompatibles = array_values(array_filter(
+                                                    $odontologosActivos,
+                                                    static fn(array $odonto): bool => coincideEspecialidadConServicio(
+                                                        (string) ($odonto['especialidad'] ?? ''),
+                                                        $servicioSolicitadoCita
+                                                    )
+                                                ));
+                                                $sinEspecialistaServicio = ($odontologosCompatibles === []);
+                                                ?>
+                                                <form action="../../app/logica_cita.php" method="POST" id="form-cita-<?php echo (int) $cita['id']; ?>" style="margin: 0;">
+                                                    <input type="hidden" name="accion" value="confirmar">
                                                     <input type="hidden" name="actualizar_cita" value="1">
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                                                     <input type="hidden" name="cita_id" value="<?php echo (int) $cita['id']; ?>">
-                                                    <select name="odontologo_id" class="form-select form-select-sm" required style="border-radius: 8px;">
-                                                        <option value="">-- Seleccionar --</option>
-                                                        <?php foreach ($odontologosActivos as $odonto): ?>
-                                                            <option value="<?php echo (int) $odonto['id']; ?>" <?php echo ((int) $cita['odontologo_id'] === (int) $odonto['id']) ? 'selected' : ''; ?>>
-                                                                <?php echo htmlspecialchars($odonto['nombre'] . ' (' . $odonto['especialidad'] . ')', ENT_QUOTES, 'UTF-8'); ?>
-                                                            </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
+                                                    <?php if (!$sinEspecialistaServicio): ?>
+                                                        <select name="odontologo_id" class="form-select form-select-sm" required style="border-radius: 8px;">
+                                                            <option value="">-- Especialista en <?php echo htmlspecialchars($servicioSolicitadoCita, ENT_QUOTES, 'UTF-8'); ?> --</option>
+                                                            <?php foreach ($odontologosCompatibles as $odonto): ?>
+                                                                <option value="<?php echo (int) $odonto['id']; ?>" <?php echo ((int) $cita['odontologo_id'] === (int) $odonto['id']) ? 'selected' : ''; ?>>
+                                                                    <?php echo htmlspecialchars($odonto['nombre'] . ' (' . $odonto['especialidad'] . ')', ENT_QUOTES, 'UTF-8'); ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    <?php else: ?>
+                                                        <select name="odontologo_id" class="form-select form-select-sm" disabled style="border-radius: 8px;">
+                                                            <option value="">Sin odontólogo activo en <?php echo htmlspecialchars($servicioSolicitadoCita, ENT_QUOTES, 'UTF-8'); ?></option>
+                                                        </select>
+                                                        <div class="small mt-1" style="font-size: 0.74rem; color: #b45309;">
+                                                            <i class="fa-solid fa-circle-info me-1"></i>Asigna esta especialidad a un odontólogo en <a href="../odontologo/lista_odontologos.php" class="fw-bold text-decoration-underline" style="color: #0f766e;">Odontólogos</a>.
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </form>
                                             </td>
                                             <td data-label="Acciones" class="text-center">
                                                 <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-wrap">
-                                                    <button type="submit" form="form-cita-<?php echo (int) $cita['id']; ?>" class="btn btn--primary btn--sm" style="display: inline-flex; align-items: center; gap: 5px;">
+                                                    <button type="submit" form="form-cita-<?php echo (int) $cita['id']; ?>" class="btn btn--primary btn--sm" style="display: inline-flex; align-items: center; gap: 5px;" <?php echo $sinEspecialistaServicio ? 'disabled title="No hay odontólogos activos con la especialidad solicitada"' : ''; ?>>
                                                         <i class="fa-solid fa-check"></i> Confirmar
                                                     </button>
-                                                    <a href="editar_cita.php?id=<?php echo (int) $cita['id']; ?>" class="action action--edit" title="Editar cita">
-                                                        <i class="fa-solid fa-pen-to-square"></i> Editar
-                                                    </a>
                                                     <button type="button" class="action action--delete border-0" data-bs-toggle="modal" data-bs-target="#modalCancelarCita" data-id="<?php echo (int) $cita['id']; ?>" data-paciente="<?php echo htmlspecialchars($cita['paciente_nombre'], ENT_QUOTES, 'UTF-8'); ?>" data-fecha="<?php echo htmlspecialchars($cita['fecha'] . ' ' . substr((string) $cita['hora'], 0, 5), ENT_QUOTES, 'UTF-8'); ?>">
                                                         <i class="fa-solid fa-ban"></i> Cancelar
                                                     </button>
@@ -305,10 +299,15 @@ $csrfToken = token_csrf_recepcionista();
                                             </td>
                                             <td data-label="Estado"><span class="badge bg-success-subtle text-success">Confirmada</span></td>
                                             <td data-label="Acciones" class="text-center">
-                                                <div class="d-inline-flex gap-1 align-items-center justify-content-center">
-                                                    <a href="editar_cita.php?id=<?php echo (int) $cita['id']; ?>" class="action action--edit">
-                                                        <i class="fa-solid fa-pen-to-square"></i> Editar
-                                                    </a>
+                                                <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-wrap">
+                                                    <form action="../../app/logica_cita.php" method="POST" style="margin: 0;" onsubmit="return confirm('¿Confirmas marcar esta cita como inasistencia (No asistió)?');">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <input type="hidden" name="accion" value="marcar_no_show">
+                                                        <input type="hidden" name="id" value="<?php echo (int) $cita['id']; ?>">
+                                                        <button type="submit" class="action border-0" style="background: #fef3c7; color: #92400e;">
+                                                            <i class="fa-solid fa-user-xmark"></i> No asistió
+                                                        </button>
+                                                    </form>
                                                     <button type="button" class="action action--delete border-0" data-bs-toggle="modal" data-bs-target="#modalCancelarCita" data-id="<?php echo (int) $cita['id']; ?>" data-paciente="<?php echo htmlspecialchars($cita['paciente_nombre'], ENT_QUOTES, 'UTF-8'); ?>" data-fecha="<?php echo htmlspecialchars($cita['fecha'] . ' ' . substr((string) $cita['hora'], 0, 5), ENT_QUOTES, 'UTF-8'); ?>">
                                                         <i class="fa-solid fa-ban"></i> Cancelar
                                                     </button>
@@ -369,7 +368,7 @@ $csrfToken = token_csrf_recepcionista();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="../../assests/js/admin-animations.js"></script>
+    <script src="../../assets/js/admin-animations.js"></script>
     <script>
         const modalCancelar = document.getElementById('modalCancelarCita');
         if (modalCancelar) {
@@ -382,6 +381,6 @@ $csrfToken = token_csrf_recepcionista();
             });
         }
     </script>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>

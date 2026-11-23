@@ -15,7 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $conexion->prepare(
                     "SELECT id, nombre, email, password_hash
                      FROM recepcionista
-                     WHERE email = ? AND activo = TRUE"
+                     WHERE LOWER(email) = LOWER(?) AND activo = TRUE
+                     LIMIT 1"
                 );
                 $stmt->execute([$correo]);
                 $recepcionista = $stmt->fetch();

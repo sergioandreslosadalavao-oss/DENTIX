@@ -169,6 +169,10 @@ try {
 
                 } else {
 
+                    $consultaAnt = $conexion->prepare("SELECT nombre FROM servicio WHERE id = :id");
+                    $consultaAnt->execute([":id" => $id]);
+                    $nombreAnterior = (string) ($consultaAnt->fetchColumn() ?: "");
+
                     $consulta = $conexion->prepare(
                         "UPDATE servicio
                          SET nombre = :nombre,
@@ -184,6 +188,16 @@ try {
                         ":precio" => $datos["precio"],
                         ":id" => $id
                     ]);
+
+                    if ($nombreAnterior !== "" && strcasecmp(trim($nombreAnterior), trim($datos["nombre"])) !== 0) {
+                        $syncOdo = $conexion->prepare(
+                            "UPDATE odontologo SET especialidad = :nuevo WHERE lower(trim(especialidad)) = lower(trim(:anterior))"
+                        );
+                        $syncOdo->execute([
+                            ":nuevo" => $datos["nombre"],
+                            ":anterior" => $nombreAnterior
+                        ]);
+                    }
 
                     $verificacion = $conexion->prepare("SELECT id FROM servicio WHERE id = :id");
                     $verificacion->execute([":id" => $id]);

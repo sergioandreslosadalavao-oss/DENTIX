@@ -13,21 +13,36 @@ $inicialOdontologo = mb_strtoupper(mb_substr(preg_replace('/^(Dra?\.\s+)/i', '',
 $busquedaHistorial = trim($_GET['buscar'] ?? '');
 
 try {
-    $stmtFinalizadas = $conexion->prepare(
-        "SELECT c.id, c.fecha, c.hora,
-                p.nombre AS paciente_nombre, p.cedula AS paciente_cedula, p.telefono AS paciente_telefono, p.alergias AS paciente_alergias,
-                s.nombre AS servicio_nombre, s.duracion_min,
-                dc.detalle, dc.procedimiento, dc.nota_clinica, dc.fecha_salida, dc.hora_salida, dc.creado_en AS detalle_fecha
-         FROM cita c
-         INNER JOIN paciente p ON p.id = c.paciente_id
-         INNER JOIN servicio s ON s.id = c.servicio_id
-         LEFT JOIN detalle_cita dc ON dc.cita_id = c.id
-         WHERE c.odontologo_id = ?
-           AND c.estado = 'completada'
-         ORDER BY COALESCE(dc.creado_en, c.creado_en) DESC, c.fecha DESC, c.hora DESC"
-    );
-    $stmtFinalizadas->execute([$odontologoId]);
-    $citasFinalizadas = $stmtFinalizadas->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmtFinalizadas = $conexion->prepare(
+            "SELECT cita_id AS id, fecha, hora,
+                    paciente AS paciente_nombre, paciente_cedula, paciente_telefono, alergias AS paciente_alergias,
+                    servicio AS servicio_nombre, duracion_min,
+                    detalle, procedimiento, nota_clinica, fecha_salida, hora_salida, detalle_fecha
+             FROM v_historial_paciente
+             WHERE odontologo_id = ?
+               AND estado = 'completada'
+             ORDER BY detalle_fecha DESC, fecha DESC, hora DESC"
+        );
+        $stmtFinalizadas->execute([$odontologoId]);
+        $citasFinalizadas = $stmtFinalizadas->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $eVistaHist) {
+        $stmtFinalizadas = $conexion->prepare(
+            "SELECT c.id, c.fecha, c.hora,
+                    p.nombre AS paciente_nombre, p.cedula AS paciente_cedula, p.telefono AS paciente_telefono, p.alergias AS paciente_alergias,
+                    s.nombre AS servicio_nombre, s.duracion_min,
+                    dc.detalle, dc.procedimiento, dc.nota_clinica, dc.fecha_salida, dc.hora_salida, dc.creado_en AS detalle_fecha
+             FROM cita c
+             INNER JOIN paciente p ON p.id = c.paciente_id
+             INNER JOIN servicio s ON s.id = c.servicio_id
+             LEFT JOIN detalle_cita dc ON dc.cita_id = c.id
+             WHERE c.odontologo_id = ?
+               AND c.estado = 'completada'
+             ORDER BY COALESCE(dc.creado_en, c.creado_en) DESC, c.fecha DESC, c.hora DESC"
+        );
+        $stmtFinalizadas->execute([$odontologoId]);
+        $citasFinalizadas = $stmtFinalizadas->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (PDOException $e) {
     $citasFinalizadas = [];
     error_log('Error al cargar nube de historial de citas: ' . $e->getMessage());
@@ -48,9 +63,10 @@ if ($busquedaHistorial !== '') {
 $csrfToken = token_csrf_odontologo();
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Citas Finalizadas - DENTIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,8 +74,8 @@ $csrfToken = token_csrf_odontologo();
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="../../assests/css/admin.css?v=20261103-2">
-    <link rel="stylesheet" href="../../assests/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css?v=20261103-2">
+    <link rel="stylesheet" href="../../assets/css/index.css">
 </head>
 <body class="admin-body" data-accent="odontologos">
     <div class="page-progress"><span class="page-progress__bar"></span></div>
@@ -305,8 +321,8 @@ $csrfToken = token_csrf_odontologo();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="../../assests/js/admin-animations.js"></script>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="../../assets/js/admin-animations.js"></script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>
 

@@ -39,12 +39,23 @@ $mensaje = $_SESSION['mensaje'] ?? null;
 $tipo_mensaje = $_SESSION['tipo_mensaje'] ?? 'exito';
 unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
 
+if (!isset($conexion)) {
+    require_once __DIR__ . '/../../config/database.php';
+}
+require_once __DIR__ . '/../../app/odontologo_catalogos.php';
+
+$especialidadesDisponibles = obtenerEspecialidadesOdontologia($conexion);
+$estadoConsultorios = obtenerEstadoConsultorios($conexion, (int) $odontologo['id']);
+$consultoriosDisponiblesEdicion = $estadoConsultorios['libres'];
+$consultorioActual = trim((string) ($odontologo['consultorio'] ?? ''));
+
 $csrfToken = token_csrf_recepcionista();
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Odontólogo - DENTIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,8 +63,8 @@ $csrfToken = token_csrf_recepcionista();
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="../../assests/css/admin.css">
-    <link rel="stylesheet" href="../../assests/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/index.css">
 </head>
 <body class="admin-body" style="display: grid; place-items: center; min-height: 100vh; padding: 30px 15px;">
 
@@ -96,26 +107,26 @@ $csrfToken = token_csrf_recepcionista();
                             maxlength="100"
                             value="<?= htmlspecialchars($odontologo['nombre'], ENT_QUOTES, 'UTF-8') ?>"
                             required
-                            placeholder="Ej. Dra. Ana Torres"
+                            placeholder="Ej. Maik Cardenas o Dra. Ana Torres"
                         >
                     </div>
+                    <small class="text-muted d-block mt-1" id="nombreTituloPreview">Si no escribes <strong>Dr.</strong> o <strong>Dra.</strong>, el sistema lo asignará automáticamente según el nombre.</small>
                 </div>
 
                 <div class="mb-3">
-                    <label for="especialidad" class="form-label fw-semibold small text-dark">Especialidad Clínica</label>
+                    <label for="especialidad" class="form-label fw-semibold small text-dark">Especialidad Clínica (Servicio que atiende)</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-stethoscope text-muted"></i></span>
-                        <input
-                            type="text"
-                            class="form-control border-start-0"
-                            id="especialidad"
-                            name="especialidad"
-                            maxlength="60"
-                            value="<?= htmlspecialchars($odontologo['especialidad'], ENT_QUOTES, 'UTF-8') ?>"
-                            required
-                            placeholder="Ej. Ortodoncia, Endodoncia, Odontopediatría"
-                        >
+                        <select class="form-select border-start-0" id="especialidad" name="especialidad" required>
+                            <option value="">-- Seleccionar servicio / especialidad --</option>
+                            <?php foreach ($especialidadesDisponibles as $espOpt): ?>
+                                <option value="<?= htmlspecialchars($espOpt, ENT_QUOTES, 'UTF-8') ?>" <?= normalizarClaveCatalogo((string) ($odontologo['especialidad'] ?? '')) === normalizarClaveCatalogo($espOpt) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($espOpt, ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+                    <small class="text-muted">Solo se listan los servicios activos de la clínica; Recepción asignará citas de este servicio a este especialista.</small>
                 </div>
 
                 <div class="row g-3 mb-3">
@@ -123,15 +134,24 @@ $csrfToken = token_csrf_recepcionista();
                         <label for="consultorio" class="form-label fw-semibold small text-dark">Consultorio / Espacio</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-door-closed text-muted"></i></span>
-                            <input
-                                type="text"
-                                class="form-control border-start-0"
-                                id="consultorio"
-                                name="consultorio"
-                                maxlength="30"
-                                value="<?= htmlspecialchars($odontologo['consultorio'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                placeholder="Ej. Consultorio 1"
-                            >
+                            <select class="form-select border-start-0" id="consultorio" name="consultorio" required>
+                                <option value="">-- Seleccionar consultorio libre --</option>
+                                <?php
+                                $encontradoActual = false;
+                                foreach ($consultoriosDisponiblesEdicion as $cDisp):
+                                    $esActual = ($consultorioActual !== '' && normalizarClaveCatalogo($consultorioActual) === normalizarClaveCatalogo($cDisp['nombre']));
+                                    if ($esActual) $encontradoActual = true;
+                                ?>
+                                    <option value="<?= htmlspecialchars($cDisp['nombre'], ENT_QUOTES, 'UTF-8') ?>" <?= $esActual ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($cDisp['nombre'], ENT_QUOTES, 'UTF-8') ?><?= $esActual ? ' (Actual)' : ' (Libre)' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <?php if ($consultorioActual !== '' && !$encontradoActual): ?>
+                                    <option value="<?= htmlspecialchars($consultorioActual, ENT_QUOTES, 'UTF-8') ?>" selected>
+                                        <?= htmlspecialchars($consultorioActual, ENT_QUOTES, 'UTF-8') ?> (Actual)
+                                    </option>
+                                <?php endif; ?>
+                            </select>
                         </div>
                     </div>
 
@@ -189,6 +209,50 @@ $csrfToken = token_csrf_recepcionista();
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script>
+        (() => {
+            const inputNombre = document.getElementById('nombre');
+            const preview = document.getElementById('nombreTituloPreview');
+            if (!inputNombre || !preview) return;
+
+            const femSinA = new Set(['abril','ailin','amparo','angie','araceli','astrid','beatriz','belen','carmen','carol','celeste','chloe','cindy','consuelo','daisy','deisy','denisse','dolores','edith','elizabeth','esther','evelyn','flor','genesis','guadalupe','heidy','ingrid','irene','iris','isabel','janeth','jennifer','jenny','judith','karen','katerin','katherine','kathy','kelly','kimberly','lady','leidy','lesly','lilibeth','liz','lizeth','luz','magaly','maribel','marisol','marlene','mary','mayra','mayerly','mercedes','michelle','milagros','miriam','naomi','nataly','nathaly','nancy','nicole','nieves','noemi','pilar','rachel','raquel','rocio','rosario','ruth','salome','sandy','sarai','sharick','sharon','soledad','sol','stephanie','sully','trinidad','wendy','yaneth','yudy','yuly','zoe']);
+            const mascConA = new Set(['borja','bautista','ezra','joshua','luca','mustafa','nikola']);
+
+            const normalizar = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+            const inferirNombre = (raw) => {
+                const limpio = raw.replace(/\s+/g, ' ').trim();
+                if (!limpio) return '';
+                const match = limpio.match(/^(dra?)\.?\s+(.+)$/i);
+                if (match) {
+                    const pref = match[1].toLowerCase() === 'dra' ? 'Dra.' : 'Dr.';
+                    return `${pref} ${match[2].trim()}`;
+                }
+                const primer = normalizar(limpio.split(' ')[0] || '');
+                const esFem = femSinA.has(primer) || (!mascConA.has(primer) && primer.endsWith('a'));
+                return `${esFem ? 'Dra.' : 'Dr.'} ${limpio}`;
+            };
+
+            const actualizarPreview = () => {
+                const res = inferirNombre(inputNombre.value);
+                if (!res) {
+                    preview.innerHTML = 'Si no escribes <strong>Dr.</strong> o <strong>Dra.</strong>, el sistema lo asignará automáticamente según el nombre.';
+                    return;
+                }
+                preview.innerHTML = 'Se guardará como: <strong class="text-teal" style="color:#0d9488;"></strong>';
+                preview.querySelector('strong').textContent = res;
+            };
+
+            inputNombre.addEventListener('input', actualizarPreview);
+            inputNombre.addEventListener('blur', () => {
+                const res = inferirNombre(inputNombre.value);
+                if (res) {
+                    inputNombre.value = res;
+                    actualizarPreview();
+                }
+            });
+            actualizarPreview();
+        })();
+    </script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>

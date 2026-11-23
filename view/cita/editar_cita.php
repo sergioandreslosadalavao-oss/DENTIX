@@ -1,7 +1,12 @@
 <?php
+// editar_cita.php - Deshabilitado para Recepción (RF-038: recepción solo direcciona/asigna odontólogo, confirma, marca no_show o cancela)
 require_once __DIR__ . '/../../app/recepcionista_auth.php';
 requerir_recepcionista('../recepcionista/lista_recepcionista.php');
-require_once __DIR__ . '/../../config/database.php';
+
+$_SESSION['mensaje'] = 'Por política de agenda (RF-038), recepción no puede editar citas manualmente. Solo puede direccionar y asignar un odontólogo, confirmar, marcar inasistencia o cancelar con motivo.';
+$_SESSION['tipo_mensaje'] = 'error';
+header('Location: lista_citas.php');
+exit();
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
@@ -40,9 +45,10 @@ unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']);
 $csrfToken = token_csrf_recepcionista();
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Cita - DENTIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,8 +56,8 @@ $csrfToken = token_csrf_recepcionista();
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="../../assests/css/admin.css">
-    <link rel="stylesheet" href="../../assests/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/index.css">
 </head>
 <body class="admin-body" style="display: grid; place-items: center; min-height: 100vh; padding: 30px 15px;">
 
@@ -164,6 +170,6 @@ $csrfToken = token_csrf_recepcionista();
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>

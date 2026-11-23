@@ -50,9 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             && $fechaIngresada->format('Y-m-d') === $fecha
             && $fecha >= date('Y-m-d');
         $horaValida = preg_match('/^(?:0[89]|1[0-9]):(?:00|30)$/', $hora) === 1;
+        $horaPasadaHoy = $fechaValida && $horaValida && $fecha === date('Y-m-d') && $hora <= date('H:i');
 
         if (!$fechaValida || !$horaValida) {
             $error = 'Elige una fecha válida y un horario entre 08:00 y 19:30, cada 30 minutos.';
+        } elseif ($horaPasadaHoy) {
+            $error = 'No puedes solicitar una cita para hoy en una hora que ya pasó (' . htmlspecialchars($hora, ENT_QUOTES, 'UTF-8') . '). Elige un horario posterior a ' . date('H:i') . ' o selecciona otra fecha.';
         } else {
             try {
                 $stmt = $conexion->prepare('SELECT id FROM servicio WHERE id = ?');
@@ -110,9 +113,10 @@ $fechaIngresadaForm = is_string($_POST['fecha'] ?? null) ? $_POST['fecha'] : '';
 $horaIngresadaForm = is_string($_POST['hora'] ?? null) ? $_POST['hora'] : '';
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agendar cita - DENTIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -120,8 +124,8 @@ $horaIngresadaForm = is_string($_POST['hora'] ?? null) ? $_POST['hora'] : '';
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="../../assests/css/admin.css">
-    <link rel="stylesheet" href="../../assests/css/paciente.css?v=20261110-vivid">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/paciente.css?v=20261110-vivid">
 </head>
 <body class="admin-body patient-auth-body">
     <main class="patient-auth-card patient-booking-card">
@@ -175,6 +179,37 @@ $horaIngresadaForm = is_string($_POST['hora'] ?? null) ? $_POST['hora'] : '';
             </form>
         <?php endif; ?>
     </main>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script>
+        (() => {
+            const fechaInput = document.getElementById('fecha');
+            const horaInput = document.getElementById('hora');
+            if (!fechaInput || !horaInput) return;
+
+            const actualizarHoraMinima = () => {
+                const ahora = new Date();
+                const yyyy = ahora.getFullYear();
+                const mm = String(ahora.getMonth() + 1).padStart(2, '0');
+                const dd = String(ahora.getDate()).padStart(2, '0');
+                const hoyStr = `${yyyy}-${mm}-${dd}`;
+
+                if (fechaInput.value === hoyStr) {
+                    const hh = String(ahora.getHours()).padStart(2, '0');
+                    const min = String(ahora.getMinutes()).padStart(2, '0');
+                    const horaActual = `${hh}:${min}`;
+                    if (horaInput.value && horaInput.value <= horaActual) {
+                        horaInput.setCustomValidity(`Para citas de hoy debes elegir una hora posterior a la actual (${horaActual}).`);
+                    } else {
+                        horaInput.setCustomValidity('');
+                    }
+                } else {
+                    horaInput.setCustomValidity('');
+                }
+            };
+
+            fechaInput.addEventListener('change', actualizarHoraMinima);
+            horaInput.addEventListener('input', actualizarHoraMinima);
+        })();
+    </script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>

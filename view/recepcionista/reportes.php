@@ -45,6 +45,7 @@ $resumen = [
     'confirmadas' => 0,
     'completadas' => 0,
     'canceladas' => 0,
+    'no_show' => 0,
     'ingresos_estimados' => 0,
 ];
 $totalPacientes = 0;
@@ -56,14 +57,15 @@ $horariosPico = [];
 $error = '';
 
 try {
-    // 1. Resumen general de citas e ingresos estimados
+    // 1. Resumen general de citas e ingresos estimados (separando cancelada de no_show)
     $stmtResumen = $conexion->prepare(
         "SELECT
             COUNT(c.id) AS total_citas,
             COUNT(c.id) FILTER (WHERE c.estado = 'pendiente') AS pendientes,
             COUNT(c.id) FILTER (WHERE c.estado = 'confirmada') AS confirmadas,
             COUNT(c.id) FILTER (WHERE c.estado = 'completada') AS completadas,
-            COUNT(c.id) FILTER (WHERE c.estado IN ('cancelada', 'no_show')) AS canceladas,
+            COUNT(c.id) FILTER (WHERE c.estado = 'cancelada') AS canceladas,
+            COUNT(c.id) FILTER (WHERE c.estado = 'no_show') AS no_show,
             COALESCE(SUM(s.precio) FILTER (WHERE c.estado IN ('confirmada', 'completada')), 0) AS ingresos_estimados
          FROM cita c
          INNER JOIN servicio s ON s.id = c.servicio_id
@@ -78,14 +80,15 @@ try {
     $totalPacientes = (int) $conexion->query('SELECT COUNT(*) FROM paciente')->fetchColumn();
     $totalOdontologosActivos = (int) $conexion->query('SELECT COUNT(*) FROM odontologo WHERE activo IS TRUE')->fetchColumn();
 
-    // 2. Pacientes que más citas han agendado
+    // 2. Pacientes que más citas han agendado (separando canceladas de inasistencias no_show)
     $stmtPacientes = $conexion->prepare(
         "SELECT p.id, p.nombre, p.cedula, p.telefono,
                 COUNT(c.id) AS total_citas,
                 COUNT(c.id) FILTER (WHERE c.estado = 'completada') AS completadas,
                 COUNT(c.id) FILTER (WHERE c.estado = 'confirmada') AS confirmadas,
                 COUNT(c.id) FILTER (WHERE c.estado = 'pendiente') AS pendientes,
-                COUNT(c.id) FILTER (WHERE c.estado IN ('cancelada', 'no_show')) AS canceladas,
+                COUNT(c.id) FILTER (WHERE c.estado = 'cancelada') AS canceladas,
+                COUNT(c.id) FILTER (WHERE c.estado = 'no_show') AS no_show,
                 MAX(c.fecha) AS ultima_cita
          FROM paciente p
          INNER JOIN cita c ON c.paciente_id = p.id
@@ -152,11 +155,339 @@ $maxCitasPaciente = $liderPaciente ? max(1, (int) $liderPaciente['total_citas'])
 $totalCitasServicios = array_sum(array_map(static fn($r) => (int) $r['total_solicitudes'], $topServicios));
 $maxCitasOdontologo = $liderOdontologo ? max(1, (int) $liderOdontologo['total_citas']) : 1;
 $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1;
+
+// Exportación a Excel (.xlsx) con diseño corporativo DENTIX (consolidada o individual por sección - RF-043)
+$formatoExport = $_GET['export'] ?? '';
+if (($formatoExport === 'xlsx' || $formatoExport === 'csv') && $error === '') {
+    require_once __DIR__ . '/../../app/xlsx_writer.php';
+    $X = 'DentixXlsxWriter';
+
+    $seccion = $_GET['seccion'] ?? 'todos';
+    $seccionesValidas = ['todos', 'resumen', 'servicios', 'odontologos', 'pacientes', 'horarios'];
+    if (!in_array($seccion, $seccionesValidas, true)) {
+        $seccion = 'todos';
+    }
+
+    $rangoLabel = ($fechaDesde !== '' || $fechaHasta !== '')
+        ? (($fechaDesde !== '' ? $fechaDesde : 'Inicio') . '_a_' . ($fechaHasta !== '' ? $fechaHasta : 'Hoy'))
+        : 'historico_completo';
+
+    $fmtFecha = static function (?string $f): string {
+        if ($f === null || $f === '') {
+            return 'Sin citas';
+        }
+        $dt = DateTimeImmutable::createFromFormat('!Y-m-d', substr($f, 0, 10));
+        return $dt ? $dt->format('d/m/Y') : $f;
+    };
+    $periodoTexto = 'Periodo: ' . ($fechaDesde !== '' ? $fmtFecha($fechaDesde) : 'Inicio de operaciones')
+        . '  a  ' . ($fechaHasta !== '' ? $fmtFecha($fechaHasta) : 'Actualidad');
+    $generadoTexto = 'Generado el ' . date('d/m/Y \a \l\a\s H:i') . ' por ' . ($_SESSION['recepcionista_nombre'] ?? 'Recepción DENTIX');
+
+    $xlsx = new DentixXlsxWriter('DENTIX - Recepción');
+    $totalCitasGlobal = (int) $resumen['total_citas'];
+
+    // Encabezado corporativo de cada hoja (banner teal + franja menta de metadatos + fila vacía)
+    $encabezado = static function (int $sh, string $titulo, int $numCols) use ($xlsx, $periodoTexto, $generadoTexto, $X): void {
+        $last = $X::col($numCols - 1);
+        $xlsx->addRow($sh, array_merge([['v' => 'DENTIX  ·  ' . $titulo, 's' => $X::S_TITLE]], array_fill(0, $numCols - 1, ['v' => null, 's' => $X::S_TITLE])), 36);
+        $xlsx->merge($sh, 'A1:' . $last . '1');
+        $xlsx->addRow($sh, array_merge([['v' => $periodoTexto, 's' => $X::S_META_TOP]], array_fill(0, $numCols - 1, ['v' => null, 's' => $X::S_META_TOP])), 19);
+        $xlsx->merge($sh, 'A2:' . $last . '2');
+        $xlsx->addRow($sh, array_merge([['v' => $generadoTexto, 's' => $X::S_META_BOT]], array_fill(0, $numCols - 1, ['v' => null, 's' => $X::S_META_BOT])), 19);
+        $xlsx->merge($sh, 'A3:' . $last . '3');
+        $xlsx->addRow($sh, [], 10);
+    };
+
+    // Construye una hoja de tabla estilizada: encabezados, filas cebra, totales, filtro y paneles fijos
+    $hojaTabla = static function (string $nombreHoja, string $titulo, string $tab, array $headers, array $widths, array $tipos, array $filas, ?array $totales = null)
+        use ($xlsx, $encabezado, $X): void {
+        $sh = $xlsx->addSheet($nombreHoja, $widths);
+        $xlsx->tabColor($sh, $tab);
+        $nCols = count($headers);
+        $encabezado($sh, $titulo, $nCols);
+
+        $headerRow = $xlsx->addRow($sh, array_map(static fn($h) => ['v' => $h, 's' => $X::S_HEADER], $headers), 30);
+
+        $mapa = [
+            'text'   => [$X::S_TEXT, $X::S_TEXT_Z],
+            'bold'   => [$X::S_BOLD_TEXT, $X::S_BOLD_TEXT_Z],
+            'int'    => [$X::S_INT, $X::S_INT_Z],
+            'money'  => [$X::S_MONEY, $X::S_MONEY_Z],
+            'pct'    => [$X::S_PCT, $X::S_PCT_Z],
+            'center' => [$X::S_CENTER, $X::S_CENTER_Z],
+        ];
+
+        if ($filas === []) {
+            $xlsx->addRow($sh, array_merge([['v' => 'Sin registros para el periodo seleccionado.', 's' => $X::S_CENTER]], array_fill(0, $nCols - 1, ['v' => null, 's' => $X::S_CENTER])), 22);
+            $xlsx->merge($sh, 'A' . ($headerRow + 1) . ':' . $X::col($nCols - 1) . ($headerRow + 1));
+        }
+
+        foreach ($filas as $i => $fila) {
+            $zebra = $i % 2;
+            $celdas = [];
+            foreach (array_values($fila) as $c => $valor) {
+                $tipo = $tipos[$c] ?? 'text';
+                if (is_array($valor)) {
+                    $celdas[] = $valor; // celda con estilo explícito (badges, ranking)
+                    continue;
+                }
+                $celdas[] = ['v' => $valor, 's' => $mapa[$tipo][$zebra] ?? $X::S_TEXT];
+            }
+            $xlsx->addRow($sh, $celdas, 20);
+        }
+
+        $lastDataRow = $xlsx->currentRow($sh);
+        if ($filas !== []) {
+            $xlsx->autoFilter($sh, 'A' . $headerRow . ':' . $X::col($nCols - 1) . $lastDataRow);
+        }
+        $xlsx->freeze($sh, 'A' . ($headerRow + 1));
+
+        if ($totales !== null && $filas !== []) {
+            $mapaTot = [
+                'int'   => $X::S_TOTAL_INT,
+                'money' => $X::S_TOTAL_MONEY,
+                'pct'   => $X::S_TOTAL_PCT,
+            ];
+            $celdasTot = [];
+            foreach ($totales as $c => $valor) {
+                $tipo = $tipos[$c] ?? 'text';
+                $estilo = $mapaTot[$tipo] ?? $X::S_TOTAL_LABEL;
+                $celdasTot[] = ['v' => $valor, 's' => $estilo];
+            }
+            $xlsx->addRow($sh, $celdasTot, 24);
+        }
+
+        $xlsx->addRow($sh, [], 10);
+        $pie = $xlsx->addRow($sh, [['v' => 'Documento generado automáticamente por DENTIX · Información confidencial protegida por la Ley 1581 de 2012.', 's' => $X::S_FOOTER]]);
+        $xlsx->merge($sh, 'A' . $pie . ':' . $X::col($nCols - 1) . $pie);
+    };
+
+    $rank = static fn(int $i) => ['v' => $i + 1, 's' => $i === 0 ? DentixXlsxWriter::S_RANK_TOP : ($i % 2 ? DentixXlsxWriter::S_INT_Z : DentixXlsxWriter::S_INT)];
+
+    // ---------------------------------------------------------------- HOJA RESUMEN
+    if ($seccion === 'todos' || $seccion === 'resumen') {
+        $sh = $xlsx->addSheet('Resumen', [34, 22, 4, 30, 34]);
+        $xlsx->tabColor($sh, '0D9488');
+        $encabezado($sh, $seccion === 'todos' ? 'Reporte Gerencial Consolidado' : 'Resumen Ejecutivo de KPIs y Líderes', 5);
+
+        $r = $xlsx->addRow($sh, [['v' => 'Indicadores Clave (KPIs)', 's' => $X::S_SECTION], ['v' => null, 's' => $X::S_SECTION], null, ['v' => 'Líderes del Periodo', 's' => $X::S_SECTION], ['v' => null, 's' => $X::S_SECTION]], 24);
+        $xlsx->merge($sh, 'A' . $r . ':B' . $r);
+        $xlsx->merge($sh, 'D' . $r . ':E' . $r);
+
+        $completadas = (int) $resumen['completadas'];
+        $noShow = (int) $resumen['no_show'];
+        $tasaAsistencia = ($completadas + $noShow) > 0 ? $completadas / ($completadas + $noShow) : 0.0;
+        $tasaCancel = $totalCitasGlobal > 0 ? ((int) $resumen['canceladas']) / $totalCitasGlobal : 0.0;
+
+        $kpis = [
+            ['Total de citas', $totalCitasGlobal, $X::S_KPI_VALUE],
+            ['Pendientes', (int) $resumen['pendientes'], $X::S_KPI_VALUE],
+            ['Confirmadas', (int) $resumen['confirmadas'], $X::S_KPI_VALUE],
+            ['Completadas', $completadas, $X::S_KPI_VALUE],
+            ['Canceladas', (int) $resumen['canceladas'], $X::S_KPI_VALUE],
+            ['No asistió (No-show)', $noShow, $X::S_KPI_VALUE],
+            ['Tasa de asistencia', $tasaAsistencia, $X::S_KPI_PCT],
+            ['Tasa de cancelación', $tasaCancel, $X::S_KPI_PCT],
+            ['Ingresos estimados (COP)', (float) $resumen['ingresos_estimados'], $X::S_KPI_MONEY],
+            ['Pacientes registrados', $totalPacientes, $X::S_KPI_VALUE],
+            ['Odontólogos activos', $totalOdontologosActivos, $X::S_KPI_VALUE],
+        ];
+        $lideres = [
+            ['Paciente más frecuente', $liderPaciente ? $liderPaciente['nombre'] . ' (' . (int) $liderPaciente['total_citas'] . ' citas)' : 'Sin datos'],
+            ['Servicio más solicitado', $liderServicio ? $liderServicio['nombre'] . ' (' . (int) $liderServicio['total_solicitudes'] . ' pedidos)' : 'Sin datos'],
+            ['Odontólogo con más citas', $liderOdontologo ? $liderOdontologo['nombre'] . ' (' . (int) $liderOdontologo['total_citas'] . ' citas)' : 'Sin datos'],
+            ['Horario pico', $horariosPico !== [] ? $horariosPico[0]['franja'] . ' (' . (int) $horariosPico[0]['total'] . ' citas)' : 'Sin datos'],
+        ];
+        $estadosList = [
+            ['Pendientes', 'pendientes'],
+            ['Confirmadas', 'confirmadas'],
+            ['Completadas', 'completadas'],
+            ['Canceladas', 'canceladas'],
+            ['No asistió (No-show)', 'no_show'],
+        ];
+
+        foreach ($kpis as $i => [$label, $valor, $estilo]) {
+            $fila = [['v' => $label, 's' => $X::S_KPI_LABEL], ['v' => $valor, 's' => $estilo], null];
+            if ($i < 4) {
+                $fila[] = ['v' => $lideres[$i][0], 's' => $X::S_KPI_LABEL];
+                $fila[] = ['v' => $lideres[$i][1], 's' => $X::S_BOLD_TEXT];
+                $xlsx->addRow($sh, $fila, 24);
+            } elseif ($i === 4) {
+                $fila[] = ['v' => 'Distribución de citas por estado', 's' => $X::S_SECTION];
+                $fila[] = ['v' => null, 's' => $X::S_SECTION];
+                $rSec = $xlsx->addRow($sh, $fila, 24);
+                $xlsx->merge($sh, 'D' . $rSec . ':E' . $rSec);
+            } elseif ($i === 5) {
+                $fila[] = ['v' => 'Estado de Cita', 's' => $X::S_HEADER];
+                $fila[] = ['v' => 'Participación (%)', 's' => $X::S_HEADER];
+                $xlsx->addRow($sh, $fila, 24);
+            } else {
+                $idxEst = $i - 6;
+                [$estLabel, $estKey] = $estadosList[$idxEst];
+                $estCant = (int) $resumen[$estKey];
+                $estPct = $totalCitasGlobal > 0 ? $estCant / $totalCitasGlobal : 0.0;
+                $z = $idxEst % 2;
+                $fila[] = ['v' => $estLabel . ' (' . $estCant . ')', 's' => $z ? $X::S_TEXT_Z : $X::S_TEXT];
+                $fila[] = ['v' => $estPct, 's' => $z ? $X::S_PCT_Z : $X::S_PCT];
+                $xlsx->addRow($sh, $fila, 24);
+            }
+        }
+
+        $xlsx->addRow($sh, [], 10);
+        $notaPie = $seccion === 'todos'
+            ? 'Las pestañas siguientes detallan Servicios, Odontólogos, Pacientes y Horarios. Información confidencial (Ley 1581 de 2012).'
+            : 'Documento generado automáticamente por DENTIX · Información confidencial protegida por la Ley 1581 de 2012.';
+        $pie = $xlsx->addRow($sh, [['v' => $notaPie, 's' => $X::S_FOOTER]]);
+        $xlsx->merge($sh, 'A' . $pie . ':E' . $pie);
+    }
+
+    // ---------------------------------------------------------------- SERVICIOS
+    if ($seccion === 'todos' || $seccion === 'servicios') {
+        $filas = [];
+        $sumPedidos = $sumComp = $sumConf = $sumPend = 0;
+        $sumIng = 0.0;
+        foreach ($topServicios as $i => $srv) {
+            $pedidos = (int) $srv['total_solicitudes'];
+            $filas[] = [
+                $rank($i),
+                $srv['nombre'],
+                (int) $srv['duracion_min'],
+                (float) $srv['precio'],
+                $pedidos,
+                $totalCitasServicios > 0 ? $pedidos / $totalCitasServicios : 0.0,
+                (int) $srv['completadas'],
+                (int) $srv['confirmadas'],
+                (int) $srv['pendientes'],
+                (float) $srv['ingresos_estimados'],
+            ];
+            $sumPedidos += $pedidos;
+            $sumComp += (int) $srv['completadas'];
+            $sumConf += (int) $srv['confirmadas'];
+            $sumPend += (int) $srv['pendientes'];
+            $sumIng += (float) $srv['ingresos_estimados'];
+        }
+        $hojaTabla(
+            'Servicios',
+            'Servicios más utilizados y pedidos',
+            '14B8A6',
+            ['#', 'Servicio / Tratamiento', 'Duración (min)', 'Tarifa (COP)', 'Total pedidos', 'Participación', 'Completadas', 'Confirmadas', 'Pendientes', 'Ingresos estimados (COP)'],
+            [6, 32, 14, 16, 14, 14, 14, 14, 13, 24],
+            ['int', 'bold', 'int', 'money', 'int', 'pct', 'int', 'int', 'int', 'money'],
+            $filas,
+            ['', 'TOTAL', '', '', $sumPedidos, $sumPedidos > 0 ? 1.0 : 0.0, $sumComp, $sumConf, $sumPend, $sumIng]
+        );
+    }
+
+    // ---------------------------------------------------------------- ODONTÓLOGOS
+    if ($seccion === 'todos' || $seccion === 'odontologos') {
+        $filas = [];
+        $sumTot = $sumFin = $sumConf = 0;
+        foreach ($topOdontologos as $i => $odo) {
+            $activo = !empty($odo['activo']);
+            $filas[] = [
+                $rank($i),
+                $odo['nombre'],
+                $odo['especialidad'],
+                $odo['consultorio'] ?? 'Sin consultorio',
+                ['v' => $activo ? '● Activo' : '● Inactivo', 's' => $activo ? $X::S_OK : $X::S_BAD],
+                (int) $odo['total_citas'],
+                (int) $odo['finalizadas'],
+                (int) $odo['confirmadas'],
+                $fmtFecha($odo['ultima_fecha'] ?? null),
+            ];
+            $sumTot += (int) $odo['total_citas'];
+            $sumFin += (int) $odo['finalizadas'];
+            $sumConf += (int) $odo['confirmadas'];
+        }
+        $hojaTabla(
+            'Odontólogos',
+            'Odontólogos con mayor atención y citas',
+            '6366F1',
+            ['#', 'Odontólogo', 'Especialidad', 'Consultorio', 'Estado', 'Total citas', 'Finalizadas', 'Confirmadas en agenda', 'Última cita'],
+            [6, 28, 28, 18, 14, 13, 13, 20, 15],
+            ['int', 'bold', 'text', 'center', 'center', 'int', 'int', 'int', 'center'],
+            $filas,
+            ['', 'TOTAL', '', '', '', $sumTot, $sumFin, $sumConf, '']
+        );
+    }
+
+    // ---------------------------------------------------------------- PACIENTES
+    if ($seccion === 'todos' || $seccion === 'pacientes') {
+        $filas = [];
+        $sum = ['t' => 0, 'co' => 0, 'cf' => 0, 'p' => 0, 'ca' => 0, 'ns' => 0];
+        foreach ($topPacientes as $i => $pac) {
+            $filas[] = [
+                $rank($i),
+                $pac['nombre'],
+                (string) ($pac['cedula'] ?? 'Sin cédula'),
+                (string) $pac['telefono'],
+                (int) $pac['total_citas'],
+                (int) $pac['completadas'],
+                (int) $pac['confirmadas'],
+                (int) $pac['pendientes'],
+                (int) $pac['canceladas'],
+                (int) ($pac['no_show'] ?? 0),
+                $fmtFecha($pac['ultima_cita'] ?? null),
+            ];
+            $sum['t'] += (int) $pac['total_citas'];
+            $sum['co'] += (int) $pac['completadas'];
+            $sum['cf'] += (int) $pac['confirmadas'];
+            $sum['p'] += (int) $pac['pendientes'];
+            $sum['ca'] += (int) $pac['canceladas'];
+            $sum['ns'] += (int) ($pac['no_show'] ?? 0);
+        }
+        $hojaTabla(
+            'Pacientes',
+            'Pacientes que más citas han agendado',
+            'F59E0B',
+            ['#', 'Paciente', 'Cédula', 'Teléfono', 'Total citas', 'Completadas', 'Confirmadas', 'Pendientes', 'Canceladas', 'No asistió', 'Última cita'],
+            [6, 28, 16, 16, 12, 13, 13, 12, 12, 12, 15],
+            ['int', 'bold', 'center', 'center', 'int', 'int', 'int', 'int', 'int', 'int', 'center'],
+            $filas,
+            ['', 'TOTAL', '', '', $sum['t'], $sum['co'], $sum['cf'], $sum['p'], $sum['ca'], $sum['ns'], '']
+        );
+    }
+
+    // ---------------------------------------------------------------- HORARIOS
+    if ($seccion === 'todos' || $seccion === 'horarios') {
+        $filas = [];
+        $sumH = 0;
+        foreach ($horariosPico as $idx => $h) {
+            $cantH = (int) $h['total'];
+            $filas[] = [
+                $rank($idx),
+                $h['franja'],
+                $cantH,
+                $totalCitasGlobal > 0 ? $cantH / $totalCitasGlobal : 0.0,
+            ];
+            $sumH += $cantH;
+        }
+        $hojaTabla(
+            'Horarios',
+            'Horarios más solicitados',
+            'EC4899',
+            ['#', 'Franja horaria', 'Total citas', 'Porcentaje del total'],
+            [6, 22, 16, 22],
+            ['int', 'center', 'int', 'pct'],
+            $filas,
+            ['', 'TOTAL', $sumH, $totalCitasGlobal > 0 ? $sumH / $totalCitasGlobal : 0.0]
+        );
+    }
+
+    $xlsx->download('reporte_dentix_' . $seccion . '_' . $rangoLabel . '.xlsx');
+}
+
+$queryExportBase = http_build_query(array_filter([
+    'desde' => $fechaDesde,
+    'hasta' => $fechaHasta,
+    'export' => 'xlsx',
+]));
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes Clínicos - DENTIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,8 +495,8 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="../../assests/css/admin.css?v=20261103-2">
-    <link rel="stylesheet" href="../../assests/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css?v=20261103-2">
+    <link rel="stylesheet" href="../../assets/css/index.css">
     <style>
         .report-kpi {
             background: #ffffff;
@@ -246,6 +577,12 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                 border: 1px solid #cbd5e1 !important;
                 break-inside: avoid;
             }
+            body.print-single-mode .report-printable-panel:not(.is-print-target) {
+                display: none !important;
+            }
+            body.print-single-mode #panel-kpis .panel__body {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -290,7 +627,7 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                 <?php endif; ?>
 
                 <!-- Cabecera y filtro de fechas -->
-                <div class="panel mb-4">
+                <div class="panel mb-4" id="panel-kpis">
                     <div class="panel__head flex-wrap gap-3">
                         <div>
                             <h3 class="panel__title"><i class="fa-solid fa-chart-column"></i> Reportes y Estadísticas de la Clínica</h3>
@@ -322,9 +659,15 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                                     </a>
                                 <?php endif; ?>
                             </form>
-                            <button type="button" onclick="window.print()" class="btn btn-outline-secondary btn-sm rounded-3 fw-semibold">
-                                <i class="fa-solid fa-print me-1"></i> Imprimir
+                            <button type="button" onclick="imprimirTodo()" class="btn btn-outline-secondary btn-sm rounded-3 fw-semibold" title="Imprimir todos los reportes en PDF">
+                                <i class="fa-solid fa-print me-1"></i> Imprimir Todo (PDF)
                             </button>
+                            <a href="reportes.php?<?php echo htmlspecialchars($queryExportBase . '&seccion=resumen', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-success btn-sm rounded-3 fw-semibold" title="Descargar solo el Resumen de KPIs y Líderes en Excel (.xlsx)">
+                                <i class="fa-solid fa-file-excel me-1"></i> Resumen KPIs (Excel)
+                            </a>
+                            <a href="reportes.php?<?php echo htmlspecialchars($queryExportBase . '&seccion=todos', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-success btn-sm rounded-3 fw-semibold text-white" title="Descargar reporte consolidado en Excel (.xlsx) con 5 hojas diseñadas">
+                                <i class="fa-solid fa-file-excel me-1"></i> Exportar Todo (Excel)
+                            </a>
                         </div>
                     </div>
 
@@ -355,7 +698,7 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                                     <div class="text-muted small fw-semibold">Citas Finalizadas</div>
                                     <div class="fs-4 fw-bold text-dark"><?php echo (int) $resumen['completadas']; ?></div>
                                     <div class="small text-muted">
-                                        <?php echo (int) $resumen['canceladas']; ?> canceladas / no-show
+                                        <?php echo (int) $resumen['canceladas']; ?> canceladas · <?php echo (int) ($resumen['no_show'] ?? 0); ?> no-show
                                     </div>
                                 </div>
                             </div>
@@ -445,11 +788,19 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                 </div>
 
                 <!-- Reporte 1: Servicios más utilizados -->
-                <div class="panel mb-4">
-                    <div class="panel__head">
+                <div class="panel mb-4 report-printable-panel" id="panel-servicios">
+                    <div class="panel__head flex-wrap gap-2">
                         <div>
                             <h3 class="panel__title"><i class="fa-solid fa-notes-medical"></i> Servicios Más Utilizados y Pedidos</h3>
                             <p class="panel__subtitle">Demanda por tratamiento, participación porcentual e ingresos proyectados.</p>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center no-print">
+                            <button type="button" onclick="imprimirSeccion('panel-servicios')" class="btn btn-outline-secondary btn-sm rounded-3">
+                                <i class="fa-solid fa-file-pdf me-1"></i> Imprimir PDF
+                            </button>
+                            <a href="reportes.php?<?php echo htmlspecialchars($queryExportBase . '&seccion=servicios', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-success btn-sm rounded-3">
+                                <i class="fa-solid fa-file-excel me-1"></i> Excel
+                            </a>
                         </div>
                     </div>
 
@@ -512,11 +863,19 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                 </div>
 
                 <!-- Reporte 2: Odontólogos que más atienden -->
-                <div class="panel mb-4">
-                    <div class="panel__head">
+                <div class="panel mb-4 report-printable-panel" id="panel-odontologos">
+                    <div class="panel__head flex-wrap gap-2">
                         <div>
                             <h3 class="panel__title"><i class="fa-solid fa-user-doctor"></i> Odontólogos con Mayor Atención y Citas</h3>
                             <p class="panel__subtitle">Productividad de especialistas ordenada por citas atendidas y asignadas (excluyendo canceladas).</p>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center no-print">
+                            <button type="button" onclick="imprimirSeccion('panel-odontologos')" class="btn btn-outline-secondary btn-sm rounded-3">
+                                <i class="fa-solid fa-file-pdf me-1"></i> Imprimir PDF
+                            </button>
+                            <a href="reportes.php?<?php echo htmlspecialchars($queryExportBase . '&seccion=odontologos', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-success btn-sm rounded-3">
+                                <i class="fa-solid fa-file-excel me-1"></i> Excel
+                            </a>
                         </div>
                     </div>
 
@@ -581,12 +940,20 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
 
                 <!-- Reporte 3: Pacientes que más citas han agendado + Horarios pico -->
                 <div class="row g-4">
-                    <div class="col-lg-8">
+                    <div class="col-lg-8 report-printable-panel" id="panel-pacientes">
                         <div class="panel h-100">
-                            <div class="panel__head">
+                            <div class="panel__head flex-wrap gap-2">
                                 <div>
                                     <h3 class="panel__title"><i class="fa-solid fa-hospital-user"></i> Pacientes que Más Citas Han Agendado</h3>
                                     <p class="panel__subtitle">Ranking de pacientes ordenado por historial de solicitudes y asistencia.</p>
+                                </div>
+                                <div class="d-flex gap-2 align-items-center no-print">
+                                    <button type="button" onclick="imprimirSeccion('panel-pacientes')" class="btn btn-outline-secondary btn-sm rounded-3">
+                                        <i class="fa-solid fa-file-pdf me-1"></i> Imprimir PDF
+                                    </button>
+                                    <a href="reportes.php?<?php echo htmlspecialchars($queryExportBase . '&seccion=pacientes', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-success btn-sm rounded-3">
+                                        <i class="fa-solid fa-file-excel me-1"></i> Excel
+                                    </a>
                                 </div>
                             </div>
 
@@ -633,7 +1000,10 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                                                         <span class="badge bg-primary-subtle text-primary me-1"><?php echo (int) $pac['confirmadas']; ?> conf.</span>
                                                         <span class="badge bg-warning-subtle text-warning me-1"><?php echo (int) $pac['pendientes']; ?> pend.</span>
                                                         <?php if ((int) $pac['canceladas'] > 0): ?>
-                                                            <span class="badge bg-danger-subtle text-danger"><?php echo (int) $pac['canceladas']; ?> canc.</span>
+                                                            <span class="badge bg-danger-subtle text-danger me-1"><?php echo (int) $pac['canceladas']; ?> canc.</span>
+                                                        <?php endif; ?>
+                                                        <?php if ((int) ($pac['no_show'] ?? 0) > 0): ?>
+                                                            <span class="badge bg-secondary-subtle text-secondary"><?php echo (int) $pac['no_show']; ?> no-show</span>
                                                         <?php endif; ?>
                                                     </td>
                                                     <td data-label="Última Cita" class="text-muted small">
@@ -650,12 +1020,20 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
                         </div>
                     </div>
 
-                    <div class="col-lg-4">
+                    <div class="col-lg-4 report-printable-panel" id="panel-horarios">
                         <div class="panel h-100">
-                            <div class="panel__head">
+                            <div class="panel__head flex-wrap gap-2">
                                 <div>
                                     <h3 class="panel__title"><i class="fa-solid fa-clock"></i> Horarios Más Solicitados</h3>
                                     <p class="panel__subtitle">Franjas horarias de mayor demanda.</p>
+                                </div>
+                                <div class="d-flex gap-2 align-items-center no-print">
+                                    <button type="button" onclick="imprimirSeccion('panel-horarios')" class="btn btn-outline-secondary btn-sm rounded-3">
+                                        <i class="fa-solid fa-file-pdf me-1"></i> PDF
+                                    </button>
+                                    <a href="reportes.php?<?php echo htmlspecialchars($queryExportBase . '&seccion=horarios', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-success btn-sm rounded-3">
+                                        <i class="fa-solid fa-file-excel me-1"></i> Excel
+                                    </a>
                                 </div>
                             </div>
 
@@ -712,8 +1090,35 @@ $maxHorario = $horariosPico !== [] ? max(1, (int) $horariosPico[0]['total']) : 1
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="../../assests/js/admin-animations.js"></script>
-    <script src="../../assests/js/dentix-i18n.js?v=20261110-cur"></script>
+    <script src="../../assets/js/admin-animations.js"></script>
+    <script>
+        function limpiarModoImpresion() {
+            document.body.classList.remove('print-single-mode');
+            document.querySelectorAll('.report-printable-panel').forEach((el) => {
+                el.classList.remove('is-print-target');
+            });
+        }
+
+        function imprimirTodo() {
+            limpiarModoImpresion();
+            window.print();
+        }
+
+        function imprimirSeccion(panelId) {
+            limpiarModoImpresion();
+            const panel = document.getElementById(panelId);
+            if (!panel) {
+                window.print();
+                return;
+            }
+            document.body.classList.add('print-single-mode');
+            panel.classList.add('is-print-target');
+            window.print();
+        }
+
+        window.addEventListener('afterprint', limpiarModoImpresion);
+    </script>
+    <script src="../../assets/js/dentix-i18n.js?v=20261120-i18nfix"></script>
 </body>
 </html>
 
